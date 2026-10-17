@@ -1,0 +1,365 @@
+--[[
+    ====================================================================================
+    DARK HUB | DARKZIN ULTIMATE - VERSÃO FINAL (FIX DELTA MOBILE)
+    Foco: Aimbot Head-Lock Real, ESP Wallhack e FOV Touch-Responsive
+    ====================================================================================
+]]
+
+-- // SERVIÇOS
+local Players = game:GetService("Players")
+local UIS = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+local Camera = workspace.CurrentCamera
+
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui", 20)
+
+-- // LIMPEZA
+if playerGui:FindFirstChild("DARKZIN_HUB_V7") then 
+    playerGui.DARKZIN_HUB_V7:Destroy() 
+end
+
+-- // TEMA VISUAL
+local Theme = {
+    Background = Color3.fromRGB(10, 10, 15),
+    Panel = Color3.fromRGB(20, 20, 30),
+    Accent = Color3.fromRGB(145, 65, 255),
+    AccentDark = Color3.fromRGB(70, 30, 120),
+    Text = Color3.fromRGB(255, 255, 255),
+    Success = Color3.fromRGB(80, 220, 120),
+    Danger = Color3.fromRGB(220, 80, 80),
+    Border = Color3.fromRGB(40, 40, 60)
+}
+
+-- // CONFIGURAÇÕES
+local Settings = {
+    Arsenal = { 
+        Aimbot = false, 
+        ESP_Solo = false, 
+        ESP_Teams = false, 
+        FOV = 150, 
+        ShowFOV = false 
+    },
+    MM2 = { ESP = false, AutoGun = false },
+    RoubeUmOvo = { AutoPegar = false, Raridade = "Lendário" }
+}
+
+-- // UTILITÁRIOS
+local function make(class, props, parent)
+    local obj = Instance.new(class)
+    for k, v in pairs(props) do obj[k] = v end
+    obj.Parent = parent
+    return obj
+end
+
+local function round(obj, radius)
+    make("UICorner", {CornerRadius = UDim.new(0, radius or 8)}, obj)
+end
+
+-- // GUI
+local gui = make("ScreenGui", {
+    Name = "DARKZIN_HUB_V7",
+    ResetOnSpawn = false,
+    IgnoreGuiInset = true
+}, playerGui)
+
+-- // KEY SYSTEM
+local keyScreen = make("Frame", {
+    Size = UDim2.fromOffset(300, 200),
+    Position = UDim2.fromScale(0.5, 0.5),
+    AnchorPoint = Vector2.new(0.5, 0.5),
+    BackgroundColor3 = Theme.Background,
+    ZIndex = 20
+}, gui)
+round(keyScreen, 12)
+make("UIStroke", {Color = Theme.Accent, Thickness = 2}, keyScreen)
+
+make("TextLabel", {
+    Size = UDim2.new(1, 0, 0, 50),
+    Text = "DARK HUB ACCESS",
+    TextColor3 = Theme.Text,
+    Font = Enum.Font.GothamBold,
+    TextSize = 20,
+    BackgroundTransparency = 1
+}, keyScreen)
+
+local keyBox = make("TextBox", {
+    Size = UDim2.new(0.8, 0, 0, 40),
+    Position = UDim2.new(0.1, 0, 0, 60),
+    BackgroundColor3 = Theme.Panel,
+    PlaceholderText = "Insira a Key...",
+    TextColor3 = Theme.Text,
+    Text = ""
+}, keyScreen)
+round(keyBox, 8)
+
+make("TextButton", {
+    Size = UDim2.new(0.8, 0, 0, 40),
+    Position = UDim2.new(0.1, 0, 0, 110),
+    BackgroundColor3 = Theme.Accent,
+    Text = "VERIFICAR",
+    TextColor3 = Theme.Text,
+    Font = Enum.Font.GothamBold
+}, keyScreen).Activated:Connect(function()
+    if keyBox.Text == "DARK" then
+        keyScreen.Visible = false
+        main.Visible = true
+    else
+        keyBox.Text = ""
+        keyBox.PlaceholderText = "KEY INCORRETA!"
+        task.wait(1)
+        keyBox.PlaceholderText = "Insira a Key..."
+    end
+end)
+
+-- // MAIN PANEL
+local main = make("Frame", {
+    Size = UDim2.new(0, 450, 0, 320),
+    Position = UDim2.fromScale(0.5, 0.5),
+    AnchorPoint = Vector2.new(0.5, 0.5),
+    BackgroundColor3 = Theme.Background,
+    Visible = false
+}, gui)
+round(main, 12)
+make("UIStroke", {Color = Theme.Accent, Thickness = 2}, main)
+
+local header = make("Frame", {
+    Size = UDim2.new(1, 0, 0, 40),
+    BackgroundColor3 = Theme.Panel,
+    BorderSizePixel = 0
+}, main)
+round(header, 12)
+
+make("TextLabel", {
+    Size = UDim2.new(1, -50, 1, 0),
+    Position = UDim2.fromOffset(10, 0),
+    Text = "DARK HUB | ARSENAL",
+    TextColor3 = Theme.Text,
+    Font = Enum.Font.GothamBold,
+    TextXAlignment = Enum.TextXAlignment.Left,
+    BackgroundTransparency = 1
+}, header)
+
+local closeBtn = make("TextButton", {
+    Size = UDim2.fromOffset(30, 30),
+    Position = UDim2.new(1, -35, 0, 5),
+    BackgroundColor3 = Theme.AccentDark,
+    Text = "X",
+    TextColor3 = Theme.Text
+}, header)
+round(closeBtn, 8)
+
+local sidebar = make("ScrollingFrame", {
+    Size = UDim2.new(0, 110, 1, -50),
+    Position = UDim2.fromOffset(10, 45),
+    BackgroundColor3 = Theme.Panel,
+    BorderSizePixel = 0,
+    ScrollBarThickness = 0
+}, main)
+round(sidebar, 8)
+make("UIListLayout", {Padding = UDim.new(0, 5)}, sidebar)
+
+local content = make("Frame", {
+    Size = UDim2.new(1, -130, 1, -50),
+    Position = UDim2.fromOffset(130, 45),
+    BackgroundTransparency = 1
+}, main)
+
+local pages = {}
+local function createPage(name)
+    local p = make("ScrollingFrame", {
+        Size = UDim2.fromScale(1, 1),
+        BackgroundTransparency = 1,
+        Visible = false,
+        ScrollBarThickness = 2,
+        AutomaticCanvasSize = Enum.AutomaticSize.Y
+    }, content)
+    make("UIListLayout", {Padding = UDim.new(0, 8)}, p)
+    pages[name] = p
+    return p
+end
+
+local function showPage(name)
+    for n, p in pairs(pages) do p.Visible = (n == name) end
+end
+
+-- // COMPONENTES
+local function toggle(parent, text, default, callback)
+    local state = default
+    local btn = make("TextButton", {
+        Size = UDim2.new(1, -10, 0, 35),
+        BackgroundColor3 = state and Theme.Success or Theme.Panel,
+        Text = text .. ": " .. (state and "ON" or "OFF"),
+        TextColor3 = Theme.Text,
+        Font = Enum.Font.GothamMedium
+    }, parent)
+    round(btn, 6)
+    btn.Activated:Connect(function()
+        state = not state
+        btn.Text = text .. ": " .. (state and "ON" or "OFF")
+        btn.BackgroundColor3 = state and Theme.Success or Theme.Panel
+        callback(state)
+    end)
+end
+
+local function slider(parent, text, min, max, default, callback)
+    local container = make("Frame", {
+        Size = UDim2.new(1, -10, 0, 50),
+        BackgroundColor3 = Theme.Panel,
+        BorderSizePixel = 0
+    }, parent)
+    round(container, 6)
+    local label = make("TextLabel", {
+        Size = UDim2.new(1, 0, 0, 20),
+        Position = UDim2.fromOffset(10, 0),
+        Text = text .. ": " .. default,
+        TextColor3 = Theme.Text,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        BackgroundTransparency = 1
+    }, container)
+    local bar = make("Frame", {
+        Size = UDim2.new(1, -20, 0, 4),
+        Position = UDim2.new(0, 10, 0, 30),
+        BackgroundColor3 = Theme.Border
+    }, container)
+    local fill = make("Frame", {
+        Size = UDim2.new((default-min)/(max-min), 0, 1, 0),
+        BackgroundColor3 = Theme.Accent
+    }, bar)
+    local knob = make("TextButton", {
+        Size = UDim2.fromOffset(14, 14),
+        Position = UDim2.new((default-min)/(max-min), -7, 0.5, -7),
+        BackgroundColor3 = Theme.Text,
+        Text = ""
+    }, bar)
+    round(knob, 7)
+    
+    local dragging = false
+    knob.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then dragging = true end
+    end)
+    UIS.InputChanged:Connect(function(input)
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            local rel = math.clamp((input.Position.X - bar.AbsolutePosition.X) / bar.AbsoluteSize.X, 0, 1)
+            fill.Size = UDim2.new(rel, 0, 1, 0)
+            knob.Position = UDim2.new(rel, -7, 0.5, -7)
+            local val = math.floor(min + (max-min) * rel)
+            label.Text = text .. ": " .. val
+            callback(val)
+        end
+    end)
+    UIS.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then dragging = false end
+    end)
+end
+
+-- // PÁGINAS
+local arsenalPage = createPage("Arsenal")
+toggle(arsenalPage, "Aimbot (Head)", false, function(v) Settings.Arsenal.Aimbot = v end)
+toggle(arsenalPage, "ESP Solo", false, function(v) Settings.Arsenal.ESP_Solo = v end)
+toggle(arsenalPage, "ESP Times", false, function(v) Settings.Arsenal.ESP_Teams = v end)
+toggle(arsenalPage, "Mostrar FOV", false, function(v) Settings.Arsenal.ShowFOV = v end)
+slider(arsenalPage, "Tamanho FOV", 50, 800, 150, function(v) Settings.Arsenal.FOV = v end)
+
+local mm2Page = createPage("MM2")
+toggle(mm2Page, "ESP Papéis", false, function(v) Settings.MM2.ESP = v end)
+
+local ovoPage = createPage("Ovo")
+toggle(ovoPage, "Auto Pegar", false, function(v) Settings.RoubeUmOvo.AutoPegar = v end)
+
+-- // NAVEGAÇÃO
+for _, name in ipairs({"Arsenal", "MM2", "Ovo"}) do
+    local btn = make("TextButton", {
+        Size = UDim2.new(1, 0, 0, 35),
+        BackgroundColor3 = Theme.Panel,
+        Text = name,
+        TextColor3 = Theme.Text,
+        Font = Enum.Font.GothamMedium
+    }, sidebar)
+    round(btn, 6)
+    btn.Activated:Connect(function() showPage(name) end)
+end
+
+-- // BOTÃO FLUTUANTE
+local float = make("TextButton", {
+    Size = UDim2.fromOffset(50, 50),
+    Position = UDim2.new(0, 10, 0.5, 0),
+    BackgroundColor3 = Theme.Accent,
+    Text = "DARK",
+    TextColor3 = Theme.Text,
+    Visible = false,
+    ZIndex = 10
+}, gui)
+round(float, 25)
+float.Activated:Connect(function() main.Visible = true float.Visible = false end)
+closeBtn.Activated:Connect(function() main.Visible = false float.Visible = true end)
+
+-- // FOV CIRCLE
+local fovCircle = make("Frame", {
+    Size = UDim2.fromOffset(Settings.Arsenal.FOV, Settings.Arsenal.FOV),
+    Position = UDim2.fromScale(0.5, 0.5),
+    AnchorPoint = Vector2.new(0.5, 0.5),
+    BackgroundColor3 = Color3.new(1,1,1),
+    BackgroundTransparency = 0.8,
+    Visible = false
+}, gui)
+round(fovCircle, 100)
+make("UIStroke", {Thickness = 1, Color = Theme.Accent}, fovCircle)
+
+-- // LÓGICA DE COMBATE (Aimbot & ESP)
+local function getClosestPlayer()
+    local closest = nil
+    local shortestDistance = Settings.Arsenal.FOV
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= player and p.Character and p.Character:FindFirstChild("Head") and p.Character:FindFirstChild("Humanoid") and p.Character.Humanoid.Health > 0 then
+            local pos, onScreen = Camera:WorldToViewportPoint(p.Character.Head.Position)
+            if onScreen then
+                local dist = (Vector2.new(pos.X, pos.Y) - UIS:GetMousePosition()).Magnitude
+                if dist < shortestDistance then
+                    closest = p
+                    shortestDistance = dist
+                end
+            end
+        end
+    end
+    return closest
+end
+
+RunService.RenderStepped:Connect(function()
+    -- Aimbot Head-Lock
+    if Settings.Arsenal.Aimbot then
+        local target = getClosestPlayer()
+        if target and target.Character and target.Character:FindFirstChild("Head") then
+            Camera.CFrame = CFrame.lookAt(Camera.CFrame.Position, target.Character.Head.Position)
+        end
+    end
+
+    -- ESP Wallhack
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= player and p.Character then
+            local hl = p.Character:FindFirstChild("DarkESP") or make("Highlight", {Name = "DarkESP", Parent = p.Character})
+            if Settings.Arsenal.ESP_Solo or Settings.Arsenal.ESP_Teams then
+                hl.Enabled = true
+                hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+                if Settings.Arsenal.ESP_Teams and p.Team then
+                    hl.FillColor = (p.Team == player.Team) and Theme.Success or Theme.Danger
+                else
+                    hl.FillColor = Theme.Accent
+                end
+            else
+                hl.Enabled = false
+            end
+        end
+    end
+
+    -- FOV Update
+    fovCircle.Size = UDim2.fromOffset(Settings.Arsenal.FOV, Settings.Arsenal.FOV)
+    fovCircle.Visible = Settings.Arsenal.ShowFOV
+end)
+
+-- // FINALIZAÇÃO
+task.wait(1)
+showPage("Arsenal")
+keyScreen.Visible = true
+print("[DARK HUB] SISTEMA ATIVO NO DELTA.")
