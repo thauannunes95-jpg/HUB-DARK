@@ -1,0 +1,477 @@
+--[[
+    ====================================================================================
+    DARK HUB | DARKZIN ULTIMATE - VERSÃO ESTÁVEL (FIX DELTA)
+    Foco: Correção Total de Aimbot (Head-Lock), ESP Modular e FOV Funcional
+    ====================================================================================
+]]
+
+-- // DIAGNÓSTICO INICIAL
+print("[DARK HUB] Iniciando processo de carregamento...")
+
+local Players = game:GetService("Players")
+local UIS = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+local Camera = workspace.CurrentCamera
+
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui", 20)
+
+if not playerGui then
+    warn("[DARK HUB] ERRO CRÍTICO: PlayerGui não encontrado.")
+    return
+end
+
+-- // LIMPEZA DE INSTÂNCIAS
+local existingHub = playerGui:FindFirstChild("DARKZIN_HUB_V7")
+if existingHub then 
+    existingHub:Destroy() 
+end
+
+-- // CONFIGURAÇÕES VISUAIS
+local Theme = {
+    Background = Color3.fromRGB(15, 15, 22),
+    Panel = Color3.fromRGB(25, 25, 35),
+    Accent = Color3.fromRGB(145, 65, 255),
+    AccentDark = Color3.fromRGB(80, 40, 120),
+    Text = Color3.fromRGB(255, 255, 255),
+    Muted = Color3.fromRGB(160, 160, 180),
+    Success = Color3.fromRGB(80, 220, 120),
+    Danger = Color3.fromRGB(220, 80, 80),
+    Border = Color3.fromRGB(45, 45, 60)
+}
+
+-- // ESTADO GLOBAL
+local Settings = {
+    Visible = false,
+    CurrentPage = "Início",
+    Arsenal = { 
+        Aimbot = false, 
+        ESP_Solo = false, 
+        ESP_Teams = false, 
+        FOV = 150, 
+        ShowFOV = false -- Começa desligado conforme solicitado
+    },
+    },
+    MM2 = { ESP = false, AutoGun = false, SilentAim = false },
+    RoubeUmOvo = { AutoPegar = false, Raridade = "Lendário", AutoUpar = false }
+}
+
+-- // UTILITÁRIOS
+local function make(class, props, parent)
+    local obj = Instance.new(class)
+    for k, v in pairs(props) do obj[k] = v end
+    obj.Parent = parent
+    return obj
+end
+
+local function round(obj, radius)
+    make("UICorner", {CornerRadius = UDim.new(0, radius or 8)}, obj)
+end
+
+-- // GUI PRINCIPAL
+local gui = make("ScreenGui", {
+    Name = "DARKZIN_HUB_V7",
+    ResetOnSpawn = false,
+    IgnoreGuiInset = true,
+    ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+}, playerGui)
+
+-- // TELA DE CARREGAMENTO
+local loadingScreen = make("Frame", {
+    Size = UDim2.fromScale(1, 1),
+    BackgroundColor3 = Theme.Background,
+    ZIndex = 100,
+    Visible = true
+}, gui)
+
+make("TextLabel", {
+    Size = UDim2.new(0, 200, 0, 50),
+    Position = UDim2.fromScale(0.5, 0.5),
+    AnchorPoint = Vector2.new(0.5, 0.5),
+    BackgroundTransparency = 1,
+    Text = "CARREGANDO DARK HUB...",
+    TextColor3 = Theme.Accent,
+    Font = Enum.Font.GothamBold,
+    TextSize = 18
+}, loadingScreen)
+
+-- // INTERFACE PRINCIPAL
+local main = make("Frame", {
+    Name = "Main",
+    AnchorPoint = Vector2.new(0.5, 0.5),
+    Position = UDim2.fromScale(0.5, 0.5),
+    Size = UDim2.new(0, 480, 0, 340),
+    BackgroundColor3 = Theme.Background,
+    BorderSizePixel = 0,
+    Visible = false,
+    ZIndex = 10
+}, gui)
+round(main, 12)
+make("UIStroke", {Color = Theme.Accent, Thickness = 2}, main)
+
+local header = make("Frame", {
+    Size = UDim2.new(1, 0, 0, 45),
+    BackgroundColor3 = Theme.Panel,
+    BorderSizePixel = 0
+}, main)
+round(header, 12)
+
+make("TextLabel", {
+    Size = UDim2.new(1, -60, 1, 0),
+    Position = UDim2.fromOffset(15, 0),
+    BackgroundTransparency = 1,
+    Text = "DARK HUB | DARKZIN",
+    TextColor3 = Theme.Text,
+    TextSize = 16,
+    Font = Enum.Font.GothamBold,
+    TextXAlignment = Enum.TextXAlignment.Left
+}, header)
+
+local closeBtn = make("TextButton", {
+    Size = UDim2.new(0, 30, 0, 30),
+    Position = UDim2.new(1, -35, 0, 7),
+    BackgroundColor3 = Theme.AccentDark,
+    Text = "×",
+    TextColor3 = Theme.Text,
+    Font = Enum.Font.GothamBold,
+    TextSize = 20
+}, header)
+round(closeBtn, 8)
+
+local sidebar = make("ScrollingFrame", {
+    Position = UDim2.fromOffset(10, 55),
+    Size = UDim2.new(0, 120, 1, -65),
+    BackgroundColor3 = Theme.Panel,
+    BorderSizePixel = 0,
+    ScrollBarThickness = 2,
+    AutomaticCanvasSize = Enum.AutomaticSize.Y
+}, main)
+round(sidebar, 10)
+make("UIListLayout", {Padding = UDim.new(0, 5)}, sidebar)
+make("UIPadding", {PaddingTop = UDim.new(0, 5), PaddingLeft = UDim.new(0, 5), PaddingRight = UDim.new(0, 5)}, sidebar)
+
+local content = make("Frame", {
+    Position = UDim2.fromOffset(140, 55),
+    Size = UDim2.new(1, -150, 1, -65),
+    BackgroundTransparency = 1
+}, main)
+
+local pages = {}
+local function createPage(name)
+    local p = make("ScrollingFrame", {
+        Name = name,
+        Size = UDim2.fromScale(1, 1),
+        BackgroundTransparency = 1,
+        BorderSizePixel = 0,
+        ScrollBarThickness = 3,
+        ScrollBarImageColor3 = Theme.Accent,
+        AutomaticCanvasSize = Enum.AutomaticSize.Y,
+        Visible = false
+    }, content)
+    make("UIListLayout", {Padding = UDim.new(0, 8)}, p)
+    pages[name] = p
+    return p
+end
+
+local function showPage(name)
+    for pName, pObj in pairs(pages) do pObj.Visible = (pName == name) end
+    Settings.CurrentPage = name
+end
+
+-- // COMPONENTES DE UI
+local function toggle(parent, text, default, callback)
+    local state = default
+    local btn = make("TextButton", {
+        Size = UDim2.new(1, -10, 0, 35),
+        BackgroundColor3 = state and Theme.Success or Theme.Panel,
+        Text = text .. ": " .. (state and "ON" or "OFF"),
+        TextColor3 = Theme.Text,
+        Font = Enum.Font.GothamMedium,
+        TextSize = 12,
+        AutoButtonColor = true
+    }, parent)
+    round(btn, 6)
+    btn.Activated:Connect(function()
+        state = not state
+        btn.Text = text .. ": " .. (state and "ON" or "OFF")
+        btn.BackgroundColor3 = state and Theme.Success or Theme.Panel
+        callback(state)
+    end)
+end
+
+local function slider(parent, text, min, max, default, callback)
+    local container = make("Frame", {
+        Size = UDim2.new(1, -10, 0, 50),
+        BackgroundColor3 = Theme.Panel,
+        BorderSizePixel = 0
+    }, parent)
+    round(container, 6)
+    local title = make("TextLabel", {
+        Size = UDim2.new(1, 0, 0, 20),
+        Position = UDim2.fromOffset(10, 0),
+        BackgroundTransparency = 1,
+        Text = text .. ": " .. default,
+        TextColor3 = Theme.Text,
+        TextSize = 12,
+        Font = Enum.Font.Gotham,
+        TextXAlignment = Enum.TextXAlignment.Left
+    }, container)
+    local bar = make("Frame", {
+        Size = UDim2.new(1, -20, 0, 4),
+        Position = UDim2.new(0, 10, 0, 30),
+        BackgroundColor3 = Theme.Border,
+        BorderSizePixel = 0
+    }, container)
+    local fill = make("Frame", {
+        Size = UDim2.new((default - min) / (max - min), 0, 1, 0),
+        BackgroundColor3 = Theme.Accent,
+        BorderSizePixel = 0
+    }, bar)
+    local knob = make("TextButton", {
+        Size = UDim2.fromOffset(14, 14),
+        Position = UDim2.new((default - min) / (max - min), -7, 0.5, -7),
+        BackgroundColor3 = Theme.Text,
+        Text = "",
+        BorderSizePixel = 0
+    }, bar)
+    round(knob, 7)
+    local dragging = false
+    knob.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then dragging = true end
+    end)
+    UIS.InputChanged:Connect(function(input)
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            local relativeX = math.clamp((input.Position.X - bar.AbsolutePosition.X) / bar.AbsoluteSize.X, 0, 1)
+            fill.Size = UDim2.new(relativeX, 0, 1, 0)
+            knob.Position = UDim2.new(relativeX, -7, 0.5, -7)
+            local val = math.floor(min + (max - min) * relativeX)
+            title.Text = text .. ": " .. val
+            callback(val)
+        end
+    end)
+    UIS.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then dragging = false end
+    end)
+end
+
+-- // PÁGINAS
+local home = createPage("Início")
+make("TextLabel", {
+    Size = UDim2.new(1, 0, 0, 30),
+    Text = "SISTEMA OPERACIONAL: ATIVO",
+    TextColor3 = Theme.Success,
+    Font = Enum.Font.GothamBold,
+    BackgroundTransparency = 1,
+    TextSize = 14
+}, home)
+
+local games = createPage("Jogos")
+local arsenalPage = createPage("Arsenal")
+local mm2Page = createPage("MM2")
+local ovoPage = createPage("Roube um Ovo")
+local configPage = createPage("Configurações")
+
+-- Arsenal (Corrigido)
+toggle(arsenalPage, "Aimbot", false, function(v) Settings.Arsenal.Aimbot = v end)
+toggle(arsenalPage, "ESP Solo", false, function(v) Settings.Arsenal.ESP_Solo = v end)
+toggle(arsenalPage, "ESP Times", false, function(v) Settings.Arsenal.ESP_Teams = v end)
+toggle(arsenalPage, "Mostrar FOV", false, function(v) Settings.Arsenal.ShowFOV = v end)
+slider(arsenalPage, "FOV", 50, 800, 150, function(v) Settings.Arsenal.FOV = v end)
+
+-- MM2 (Preservado)
+toggle(mm2Page, "ESP Papéis", false, function(v) Settings.MM2.ESP = v end)
+toggle(mm2Page, "Auto Pegar Arma", false, function(v) Settings.MM2.AutoGun = v end)
+toggle(mm2Page, "Silent Aim (Demo)", false, function(v) Settings.MM2.SilentAim = v end)
+
+-- Roube um Ovo (Preservado)
+toggle(ovoPage, "Auto Pegar Ovo", false, function(v) Settings.RoubeUmOvo.AutoPegar = v end)
+toggle(ovoPage, "Auto Upar Pets", false, function(v) Settings.RoubeUmOvo.AutoUpar = v end)
+slider(ovoPage, "Raridade (1:Com, 4:Leg, 7:Sec)", 1, 7, 4, function(v)
+    local rars = {"Comum", "Raro", "Épico", "Lendário", "Mítico", "Divino", "Secreto"}
+    Settings.RoubeUmOvo.Raridade = rars[v] or "Lendário"
+end)
+
+-- Navegação
+make("TextButton", {
+    Size = UDim2.new(1, -10, 0, 35), BackgroundColor3 = Theme.Panel, Text = "ABRIR ARSENAL", TextColor3 = Theme.Text, Font = Enum.Font.GothamMedium
+}, games).Activated:Connect(function() showPage("Arsenal") end)
+
+make("TextButton", {
+    Size = UDim2.new(1, -10, 0, 35), BackgroundColor3 = Theme.Panel, Text = "ABRIR MM2", TextColor3 = Theme.Text, Font = Enum.Font.GothamMedium
+}, games).Activated:Connect(function() showPage("MM2") end)
+
+make("TextButton", {
+    Size = UDim2.new(1, -10, 0, 35), BackgroundColor3 = Theme.Panel, Text = "ABRIR ROUBE UM OVO", TextColor3 = Theme.Text, Font = Enum.Font.GothamMedium
+}, games).Activated:Connect(function() showPage("Roube um Ovo") end)
+
+for i, name in ipairs({"Início", "Jogos", "Configurações", "Sobre"}) do
+    local btn = make("TextButton", {
+        Size = UDim2.new(1, 0, 0, 35), BackgroundColor3 = Theme.Panel, Text = name, 
+        TextColor3 = Theme.Text, Font = Enum.Font.GothamMedium, BorderSizePixel = 0
+    }, sidebar)
+    round(btn, 6)
+    btn.Activated:Connect(function() showPage(name) end)
+    btn.LayoutOrder = i
+end
+
+-- // KEY SYSTEM
+local keyScreen = make("Frame", {
+    Name = "KeyScreen", AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5),
+    Size = UDim2.new(0, 300, 0, 200), BackgroundColor3 = Theme.Background, BorderSizePixel = 0, Visible = true, ZIndex = 20
+}, gui)
+round(keyScreen, 12)
+make("UIStroke", {Color = Theme.Accent, Thickness = 2}, keyScreen)
+make("TextLabel", {
+    Size = UDim2.new(1, 0, 0, 40), Position = UDim2.new(0, 0, 0, 20),
+    BackgroundTransparency = 1, Text = "DARK HUB ACCESS", TextColor3 = Theme.Text, Font = Enum.Font.GothamBlack, TextSize = 20
+}, keyScreen)
+local keyBox = make("TextBox", {
+    Position = UDim2.new(0.1, 0, 0, 70), Size = UDim2.new(0.8, 0, 0, 40),
+    BackgroundColor3 = Theme.Panel, Text = "", PlaceholderText = "Digite a Key...", TextColor3 = Theme.Text, Font = Enum.Font.Gotham
+}, keyScreen)
+round(keyBox, 8)
+make("TextButton", {
+    Size = UDim2.new(0.8, 0, 0, 40), Position = UDim2.new(0.1, 0, 0, 120),
+    BackgroundColor3 = Theme.Accent, Text = "ENTRAR", TextColor3 = Theme.Text, Font = Enum.Font.GothamBold
+}, keyScreen).Activated:Connect(function()
+    if keyBox.Text == "DARK" then keyScreen.Visible = false main.Visible = true end
+end)
+
+-- // BOTÃO FLUTUANTE
+local reopen = make("TextButton", {
+    Size = UDim2.new(0, 60, 0, 30), Position = UDim2.new(0, 10, 0.5, 0),
+    BackgroundColor3 = Theme.Accent, Text = "DARK", TextColor3 = Theme.Text, Visible = false, ZIndex = 15
+}, gui)
+round(reopen, 6)
+reopen.Activated:Connect(function() main.Visible = true reopen.Visible = false end)
+closeBtn.Activated:Connect(function() main.Visible = false reopen.Visible = true end)
+
+-- // DRAG
+local dragging, dragStart, startPos
+header.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true dragStart = input.Position startPos = main.Position
+    end
+end)
+UIS.InputChanged:Connect(function(input)
+    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        local delta = input.Position - dragStart
+        main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end)
+UIS.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then dragging = false end
+end)
+
+-- // FOV CIRCLE
+local fovCircle = make("Frame", {
+    Size = UDim2.fromOffset(Settings.Arsenal.FOV, Settings.Arsenal.FOV), 
+    Position = UDim2.new(0.5, 0, 0.5, 0), 
+    AnchorPoint = Vector2.new(0.5, 0.5), 
+    BackgroundColor3 = Color3.new(1,1,1), 
+    BackgroundTransparency = 0.8, 
+    Visible = false, 
+    ZIndex = 0
+}, gui)
+round(fovCircle, 100)
+make("UIStroke", {Thickness = 1, Color = Theme.Accent}, fovCircle)
+
+-- // LÓGICA ARSENAL (Aimbot & ESP Corrigidos)
+local function getClosestPlayer()
+    local closest = nil
+    local shortestDistance = Settings.Arsenal.FOV
+
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= player and p.Character and p.Character:FindFirstChild("Head") and p.Character:FindFirstChild("Humanoid") and p.Character.Humanoid.Health > 0 then
+            local pos, onScreen = Camera:WorldToViewportPoint(p.Character.Head.Position)
+            if onScreen then
+                local mousePos = UIS:GetMousePosition()
+                local distance = (Vector2.new(pos.X, pos.Y) - mousePos).Magnitude
+                if distance < shortestDistance then
+                    closest = p
+                    shortestDistance = distance
+                end
+            end
+        end
+    end
+    return closest
+end
+
+RunService.RenderStepped:Connect(function()
+    -- Aimbot: Trava a mira na cabeça (Head-Lock)
+    if Settings.Arsenal.Aimbot then
+        local target = getClosestPlayer()
+        if target and target.Character and target.Character:FindFirstChild("Head") then
+            local targetPos = target.Character.Head.Position
+            Camera.CFrame = CFrame.new(Camera.CFrame.Position, targetPos)
+        end
+    end
+
+    -- ESP: Atualização de Highlights (Wallhack)
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= player and p.Character then
+            local hl = p.Character:FindFirstChild("DarkArsenalESP")
+            if not hl then
+                hl = make("Highlight", {Name = "DarkArsenalESP", Parent = p.Character})
+            end
+
+            if Settings.Arsenal.ESP_Solo or Settings.Arsenal.ESP_Teams then
+                hl.Enabled = true
+                hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+                if Settings.Arsenal.ESP_Teams and p.Team ~= nil then
+                    hl.FillColor = (p.Team == player.Team) and Theme.Success or Theme.Danger
+                    hl.OutlineColor = Color3.new(1,1,1)
+                else
+                    hl.FillColor = Theme.Accent
+                    hl.OutlineColor = Color3.new(1,1,1)
+                end
+            else
+                hl.Enabled = false
+            end
+        end
+    end
+
+    -- FOV Circle Update
+    if fovCircle then
+        fovCircle.Size = UDim2.fromOffset(Settings.Arsenal.FOV, Settings.Arsenal.FOV)
+        fovCircle.Visible = Settings.Arsenal.ShowFOV
+    end
+end)
+
+-- // LÓGICA MM2 (Preservado)
+RunService.Heartbeat:Connect(function()
+    if not Settings.MM2.ESP then return end
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= player and p.Character then
+            local hl = p.Character:FindFirstChild("DarkMM2ESP") or Instance.new("Highlight")
+            hl.Name = "DarkMM2ESP"
+            hl.Parent = p.Character
+            hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+            if p.Character:FindFirstChild("Knife") then hl.FillColor = Theme.Danger
+            elseif p.Character:FindFirstChild("Gun") then hl.FillColor = Theme.Success
+            else hl.FillColor = Theme.Accent end
+        end
+    end
+end)
+
+-- // LÓGICA ROUBE UM OVO (Preservado)
+task.spawn(function()
+    while task.wait(0.5) do
+        if Settings.RoubeUmOvo.AutoPegar then
+            for _, obj in pairs(game.Workspace:GetDescendants()) do
+                if obj.Name == "Egg" and obj:FindFirstChild("ClickDetector") then
+                    local rar = obj:GetAttribute("Rarity") or "Comum"
+                    if rar == Settings.RoubeUmOvo.Raridade then fireclickdetector(obj.ClickDetector) end
+                end
+            end
+        end
+    end
+end)
+
+-- // FINALIZAÇÃO
+task.wait(1)
+loadingScreen.Visible = false
+showPage("Início")
+keyScreen.Visible = true
+print("[DARK HUB] SISTEMA FINALIZADO E ATIVO NO DELTA.")
