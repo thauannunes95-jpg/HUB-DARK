@@ -1,0 +1,289 @@
+
+local function addToggle(parent, name, callback)
+    local enabled = false
+
+    local b = button(parent, name .. "  [OFF]", function()
+        enabled = not enabled
+        b.Text = name .. (enabled and "  [ON]" or "  [OFF]")
+        b.BackgroundColor3 = enabled
+            and Color3.fromRGB(48, 65, 80)
+            or COLORS.card
+
+        if callback then
+            callback(enabled)
+        end
+    end, 40)
+
+    return b
+end
+
+local function addSlider(parent, title, minValue, maxValue, defaultValue)
+    local holder = make("Frame", {
+        Size = UDim2.new(1, 0, 0, 68),
+        BackgroundColor3 = COLORS.card
+    }, parent)
+    round(holder, 8)
+
+    local value = defaultValue
+    local titleLabel = label(holder, title .. ": " .. value, 12,
+        UDim2.fromOffset(10, 5), UDim2.new(1, -20, 0, 22), 12)
+
+    local track = make("Frame", {
+        Position = UDim2.new(0, 10, 0, 38),
+        Size = UDim2.new(1, -20, 0, 8),
+        BackgroundColor3 = COLORS.bg
+    }, holder)
+    round(track, 6)
+
+    local fill = make("Frame", {
+        Size = UDim2.new(
+            (value - minValue) / (maxValue - minValue), 0, 1, 0
+        ),
+        BackgroundColor3 = COLORS.accent
+    }, track)
+    round(fill, 6)
+
+    local dragging = false
+
+    local function setFromX(x)
+        local width = track.AbsoluteSize.X
+        if width <= 0 then return end
+
+        local relative = math.clamp(
+            (x - track.AbsolutePosition.X) / width, 0, 1
+        )
+
+        value = math.floor(
+            minValue + relative * (maxValue - minValue) + 0.5
+        )
+
+        fill.Size = UDim2.new(
+            (value - minValue) / (maxValue - minValue), 0, 1, 0
+        )
+        titleLabel.Text = title .. ": " .. value
+    end
+
+    track.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1
+            or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            setFromX(input.Position.X)
+        end
+    end)
+
+    UIS.InputChanged:Connect(function(input)
+        if dragging and (
+            input.UserInputType == Enum.UserInputType.MouseMovement
+            or input.UserInputType == Enum.UserInputType.Touch
+        ) then
+            setFromX(input.Position.X)
+        end
+    end)
+
+    UIS.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1
+            or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = false
+        end
+    end)
+
+    return function()
+        return value
+    end
+end
+
+local home = createPage("Início")
+local arsenal = createPage("Arsenal")
+local mm2 = createPage("Murder Mystery 2")
+local eggs = createPage("Roube um Ovo")
+
+addSection(home, "Bem-vindo ao DARKZIN")
+label(home, "Jogador: " .. player.DisplayName, 13,
+    UDim2.new(), UDim2.new(1, 0, 0, 24), 13)
+
+local avatar = make("ImageLabel", {
+    Size = UDim2.fromOffset(76, 76),
+    BackgroundColor3 = COLORS.card,
+    Image = "",
+    ScaleType = Enum.ScaleType.Fit
+}, home)
+round(avatar, 38)
+
+task.spawn(function()
+    local ok, imageUrl = pcall(function()
+        return Players:GetUserThumbnailAsync(
+            player.UserId,
+            Enum.ThumbnailType.HeadShot,
+            Enum.ThumbnailSize.Size150x150
+        )
+    end)
+
+    if ok and avatar.Parent then
+        avatar.Image = imageUrl
+    end
+end)
+
+label(home, "Status: interface carregada", 12,
+    UDim2.new(), UDim2.new(1, 0, 0, 24), 12)
+
+addSection(arsenal, "ARSENAL — opções visuais")
+addToggle(arsenal, "Aimbot (visual)")
+addToggle(arsenal, "ESP de equipes (visual)")
+addToggle(arsenal, "ESP solo (visual)")
+
+local fovValue = addSlider(arsenal, "FOV de visualização", 30, 300, 100)
+
+local circleEnabled = false
+local circle = make("Frame", {
+    Name = "FOVPreview",
+    AnchorPoint = Vector2.new(0.5, 0.5),
+    Position = UDim2.fromScale(0.5, 0.5),
+    Size = UDim2.fromOffset(200, 200),
+    BackgroundTransparency = 1,
+    Visible = false,
+    ZIndex = 20
+}, gui)
+
+round(circle, 200)
+stroke(circle, COLORS.accent, 2)
+
+addToggle(arsenal, "Mostrar círculo FOV", function(enabled)
+    circleEnabled = enabled
+    circle.Visible = enabled
+end)
+
+task.spawn(function()
+    while gui.Parent do
+        if circleEnabled and circle.Parent then
+            local diameter = fovValue() * 2
+            circle.Size = UDim2.fromOffset(diameter, diameter)
+        end
+        task.wait(0.1)
+    end
+end)
+
+addSection(mm2, "MURDER MYSTERY 2 — opções visuais")
+addToggle(mm2, "ESP de jogadores (visual)")
+addToggle(mm2, "Indicador de Sheriff (visual)")
+addToggle(mm2, "Indicador de Murderer (visual)")
+addToggle(mm2, "Indicador de arma (visual)")
+
+addSection(eggs, "ROUBE UM OVO — opções visuais")
+addToggle(eggs, "Auto pegar ovo (visual)")
+addToggle(eggs, "Auto upar pets (visual)")
+addToggle(eggs, "Selecionar pets míticos (visual)")
+addToggle(eggs, "Selecionar pets épicos (visual)")
+
+local navigation = {
+    {"Início", "Início"},
+    {"Arsenal", "Arsenal"},
+    {"MM2", "Murder Mystery 2"},
+    {"Roube um Ovo", "Roube um Ovo"}
+}
+
+for index, item in ipairs(navigation) do
+    local navButton = button(sidebar, item[1], function()
+        showPage(item[2])
+    end, 42)
+
+    navButton.LayoutOrder = index
+end
+
+make("UIListLayout", {
+    Padding = UDim.new(0, 7),
+    SortOrder = Enum.SortOrder.LayoutOrder
+}, sidebar)
+
+make("UIPadding", {
+    PaddingTop = UDim.new(0, 8),
+    PaddingLeft = UDim.new(0, 7),
+    PaddingRight = UDim.new(0, 7)
+}, sidebar)
+
+showPage("Início")
+
+local floating = make("TextButton", {
+    Name = "DARKZIN_OpenButton",
+    Size = UDim2.fromOffset(54, 54),
+    Position = UDim2.new(0, 15, 0.5, 0),
+    AnchorPoint = Vector2.new(0, 0.5),
+    BackgroundColor3 = COLORS.accent,
+    Text = "D",
+    TextColor3 = COLORS.text,
+    TextSize = 24,
+    Font = Enum.Font.GothamBold,
+    Visible = false
+}, gui)
+round(floating, 27)
+
+local function hidePanel()
+    main.Visible = false
+    floating.Visible = true
+end
+
+closeButton.Activated:Connect(hidePanel)
+
+floating.Activated:Connect(function()
+    main.Visible = true
+    floating.Visible = false
+end)
+
+local function enterHub()
+    if keyInput.Text == "DARK" then
+        keyFrame.Visible = false
+        main.Visible = true
+        keyError.Text = ""
+    else
+        keyError.Text = "Chave incorreta."
+        keyInput.Text = ""
+    end
+end
+
+openButton.Activated:Connect(enterHub)
+
+keyInput.FocusLost:Connect(function(enterPressed)
+    if enterPressed then
+        enterHub()
+    end
+end)
+
+-- Permite arrastar o painel usando a barra superior.
+do
+    local dragging = false
+    local dragStart
+    local startPosition
+
+    header.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1
+            or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPosition = main.Position
+        end
+    end)
+
+    UIS.InputChanged:Connect(function(input)
+        if dragging and (
+            input.UserInputType == Enum.UserInputType.MouseMovement
+            or input.UserInputType == Enum.UserInputType.Touch
+        ) then
+            local delta = input.Position - dragStart
+
+            main.Position = UDim2.new(
+                startPosition.X.Scale,
+                startPosition.X.Offset + delta.X,
+                startPosition.Y.Scale,
+                startPosition.Y.Offset + delta.Y
+            )
+        end
+    end)
+
+    UIS.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1
+            or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = false
+        end
+    end)
+end
+
+print("[DARKZIN] Interface carregada.")
