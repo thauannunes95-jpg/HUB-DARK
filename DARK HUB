@@ -1,0 +1,354 @@
+
+-- DARK HUB | DARKZIN MOBILE
+-- Interface independente de bibliotecas externas
+-- Para ambiente Roblox com LocalPlayer
+
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+local startedAt = os.clock()
+
+local previous = playerGui:FindFirstChild("DARKZIN_HUB")
+if previous then previous:Destroy() end
+
+local purple = Color3.fromRGB(145, 70, 255)
+local bg = Color3.fromRGB(18, 18, 25)
+local panel = Color3.fromRGB(30, 30, 41)
+local white = Color3.fromRGB(245, 245, 255)
+local muted = Color3.fromRGB(180, 180, 195)
+
+local gui = Instance.new("ScreenGui")
+gui.Name = "DARKZIN_HUB"
+gui.ResetOnSpawn = false
+gui.DisplayOrder = 100
+gui.Parent = playerGui
+
+local function make(class, props, parent)
+    local obj = Instance.new(class)
+    for k, v in pairs(props) do obj[k] = v end
+    obj.Parent = parent
+    return obj
+end
+
+local function corner(obj, radius)
+    make("UICorner", {
+        CornerRadius = UDim.new(0, radius or 8)
+    }, obj)
+end
+
+local main = make("Frame", {
+    Name = "Main",
+    AnchorPoint = Vector2.new(0.5, 0.5),
+    Position = UDim2.fromScale(0.5, 0.5),
+    Size = UDim2.new(0.94, 0, 0.68, 0),
+    BackgroundColor3 = bg,
+    BorderSizePixel = 0
+}, gui)
+main.Size = UDim2.new(
+    0.94, 0,
+    0, math.min(420, workspace.CurrentCamera.ViewportSize.Y * 0.78)
+)
+corner(main, 12)
+
+make("UIStroke", {
+    Color = purple,
+    Thickness = 1.5
+}, main)
+
+local header = make("Frame", {
+    Size = UDim2.new(1, 0, 0, 52),
+    BackgroundColor3 = panel,
+    BorderSizePixel = 0
+}, main)
+corner(header, 12)
+
+make("TextLabel", {
+    Size = UDim2.new(1, -100, 1, 0),
+    Position = UDim2.fromOffset(14, 0),
+    BackgroundTransparency = 1,
+    Text = "DARK HUB | DARKZIN",
+    TextColor3 = white,
+    Font = Enum.Font.GothamBold,
+    TextSize = 17,
+    TextXAlignment = Enum.TextXAlignment.Left
+}, header)
+
+local close = make("TextButton", {
+    Size = UDim2.fromOffset(38, 34),
+    Position = UDim2.new(1, -45, 0, 9),
+    Text = "×",
+    TextSize = 24,
+    Font = Enum.Font.GothamBold,
+    TextColor3 = white,
+    BackgroundColor3 = Color3.fromRGB(80, 40, 105),
+    BorderSizePixel = 0
+}, header)
+corner(close)
+
+local reopen = make("TextButton", {
+    Size = UDim2.fromOffset(105, 42),
+    Position = UDim2.new(0, 12, 0.5, -21),
+    Text = "DARK HUB",
+    TextSize = 14,
+    Font = Enum.Font.GothamBold,
+    TextColor3 = white,
+    BackgroundColor3 = purple,
+    Visible = false
+}, gui)
+corner(reopen)
+
+local nav = make("ScrollingFrame", {
+    Position = UDim2.fromOffset(8, 60),
+    Size = UDim2.new(0, 132, 1, -68),
+    BackgroundColor3 = panel,
+    BorderSizePixel = 0,
+    ScrollBarThickness = 2,
+    CanvasSize = UDim2.new(),
+    AutomaticCanvasSize = Enum.AutomaticSize.Y
+}, main)
+corner(nav)
+
+make("UIListLayout", {
+    Padding = UDim.new(0, 6),
+    SortOrder = Enum.SortOrder.LayoutOrder
+}, nav)
+
+make("UIPadding", {
+    PaddingTop = UDim.new(0, 7),
+    PaddingLeft = UDim.new(0, 6),
+    PaddingRight = UDim.new(0, 6)
+}, nav)
+
+local content = make("Frame", {
+    Position = UDim2.fromOffset(148, 60),
+    Size = UDim2.new(1, -156, 1, -68),
+    BackgroundTransparency = 1
+}, main)
+
+local pages = {}
+local labels = {}
+local function page(name)
+    local p = make("ScrollingFrame", {
+        Name = name,
+        Size = UDim2.fromScale(1, 1),
+        BackgroundTransparency = 1,
+        BorderSizePixel = 0,
+        ScrollBarThickness = 3,
+        ScrollBarImageColor3 = purple,
+        CanvasSize = UDim2.new(),
+        AutomaticCanvasSize = Enum.AutomaticSize.Y,
+        Visible = false
+    }, content)
+
+    make("UIListLayout", {
+        Padding = UDim.new(0, 7),
+        SortOrder = Enum.SortOrder.LayoutOrder
+    }, p)
+
+    make("UIPadding", {
+        PaddingTop = UDim.new(0, 3),
+        PaddingRight = UDim.new(0, 5),
+        PaddingBottom = UDim.new(0, 8)
+    }, p)
+
+    pages[name] = p
+    return p
+end
+
+local function text(p, value, height)
+    return make("TextLabel", {
+        Size = UDim2.new(1, -4, 0, height or 34),
+        BackgroundColor3 = panel,
+        BorderSizePixel = 0,
+        Text = value,
+        TextColor3 = white,
+        Font = Enum.Font.Gotham,
+        TextSize = 12,
+        TextWrapped = true
+    }, p)
+end
+
+local function button(p, value, callback)
+    local b = make("TextButton", {
+        Size = UDim2.new(1, -4, 0, 38),
+        BackgroundColor3 = panel,
+        BorderSizePixel = 0,
+        Text = value,
+        TextColor3 = white,
+        Font = Enum.Font.GothamMedium,
+        TextSize = 12,
+        TextWrapped = true
+    }, p)
+    corner(b, 7)
+    b.Activated:Connect(callback)
+    return b
+end
+
+local function section(p, value)
+    local label = text(p, value, 30)
+    label.BackgroundColor3 = purple
+    label.Font = Enum.Font.GothamBold
+    return label
+end
+
+local home = page("Início")
+local games = page("Jogos")
+local profile = page("Perfil")
+local settings = page("Configurações Avançadas")
+local about = page("Sobre")
+
+section(home, "STATUS DO HUB")
+local status = text(home, "Status: INICIALIZANDO")
+local uptime = text(home, "Tempo ativo: 00:00:00")
+local errors = text(home, "Erros monitorados: 0")
+
+text(home, "Jogador: " .. player.DisplayName)
+text(home, "Jogo: " .. game.Name)
+
+button(home, "Atualizar diagnóstico", function()
+    local t = math.floor(os.clock() - startedAt)
+    uptime.Text = string.format(
+        "Tempo ativo: %02d:%02d:%02d",
+        math.floor(t / 3600),
+        math.floor(t / 60) % 60,
+        t % 60
+    )
+    status.Text = "Status: INTERFACE CARREGADA"
+end)
+
+button(home, "Verificar personagem", function()
+    local char = player.Character
+    local hum = char and char:FindFirstChildOfClass("Humanoid")
+    status.Text = hum and "Status: PERSONAGEM OK"
+        or "Status: PERSONAGEM NÃO PRONTO"
+end)
+
+section(profile, "PERFIL DO JOGADOR")
+
+local avatar = make("ImageLabel", {
+    Size = UDim2.fromOffset(100, 100),
+    BackgroundColor3 = panel,
+    Image = "",
+    BorderSizePixel = 0
+}, profile)
+corner(avatar, 50)
+
+text(profile, "Nome: " .. player.DisplayName)
+text(profile, "Username: @" .. player.Name)
+text(profile, "User ID: " .. tostring(player.UserId))
+
+task.spawn(function()
+    local ok, image = pcall(function()
+        return Players:GetUserThumbnailAsync(
+            player.UserId,
+            Enum.ThumbnailType.AvatarBust,
+            Enum.ThumbnailSize.Size150x150
+        )
+    end)
+    if ok and avatar.Parent then avatar.Image = image end
+end)
+
+section(games, "SELEÇÃO DE JOGOS")
+for _, name in ipairs({
+    "Arsenal (MODS)",
+    "MM2 (MODS)",
+    "Roube um Ovo (MODS)"
+}) do
+    button(games, name, function()
+        status.Text = "Jogo atual: " .. game.Name
+    end)
+end
+
+section(settings, "CONFIGS APELONANTES")
+button(settings, "Aimbot (Silent)", function()
+    status.Text = "Opção selecionada: Aimbot (Silent)"
+end)
+button(settings, "Velocidade de Movimento (Walkspeed)", function()
+    status.Text = "Opção selecionada: Walkspeed"
+end)
+button(settings, "Voo Infinito (Fly)", function()
+    status.Text = "Opção selecionada: Voo Infinito (Fly)"
+end)
+text(settings, "Os controles acima são visuais; não ativam trapaças.")
+
+section(about, "SOBRE O PROJETO")
+text(about, "DARK HUB | Versão 3.1")
+text(about, "Interface nativa, sem bibliotecas externas.")
+text(about, "O status confirma a interface, não módulos externos.")
+
+local function show(name)
+    for n, p in pairs(pages) do
+        p.Visible = n == name
+    end
+end
+
+for i, name in ipairs({
+    "Início", "Jogos", "Perfil",
+    "Configurações Avançadas", "Sobre"
+}) do
+    local b = make("TextButton", {
+        Size = UDim2.new(1, 0, 0, 40),
+        BackgroundColor3 = bg,
+        Text = name,
+        TextColor3 = white,
+        Font = Enum.Font.GothamMedium,
+        TextSize = 10,
+        TextWrapped = true,
+        LayoutOrder = i
+    }, nav)
+    corner(b, 6)
+    b.Activated:Connect(function()
+        show(name)
+    end)
+end
+
+-- Arrastar com mouse e toque
+local dragging = false
+local dragInput, dragStart, startPos
+
+header.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1
+        or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = main.Position
+        dragInput = input
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if dragging and (
+        input.UserInputType == Enum.UserInputType.MouseMovement
+        or input.UserInputType == Enum.UserInputType.Touch
+    ) then
+        local delta = input.Position - dragStart
+        main.Position = UDim2.new(
+            startPos.X.Scale, startPos.X.Offset + delta.X,
+            startPos.Y.Scale, startPos.Y.Offset + delta.Y
+        )
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if input == dragInput
+        or input.UserInputType == Enum.UserInputType.MouseButton1
+        or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = false
+    end
+end)
+
+close.Activated:Connect(function()
+    main.Visible = false
+    reopen.Visible = true
+end)
+
+reopen.Activated:Connect(function()
+    main.Visible = true
+    reopen.Visible = false
+end)
+
+show("Início")
+status.Text = "Status: INTERFACE CARREGADA"
+print("[DARK HUB] Interface inicializada.")
