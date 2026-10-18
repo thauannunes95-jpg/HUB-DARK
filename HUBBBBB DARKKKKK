@@ -1,0 +1,1196 @@
+-- DARK HUB | MURDER MYSTERY 2
+-- Modificado para manter 100% das funções originais
+
+-- ======================== KEY SYSTEM ========================
+local KeyCorrect = "DARK"
+local UserInputService = game:GetService("UserInputService")
+
+local KeyGui = Instance.new("ScreenGui")
+local KeyFrame = Instance.new("Frame")
+local KeyTitle = Instance.new("TextLabel")
+local KeyInput = Instance.new("TextBox")
+local KeyButton = Instance.new("TextButton")
+
+KeyGui.Name = "DarkHubKeySystem"
+KeyGui.Parent = game:GetService("CoreGui")
+
+KeyFrame.Name = "MainFrame"
+KeyFrame.Parent = KeyGui
+KeyFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+KeyFrame.BorderSizePixel = 0
+KeyFrame.Position = UDim2.new(0.4, 0, 0.4, 0)
+KeyFrame.Size = UDim2.new(0, 300, 0, 160)
+KeyFrame.Active = true
+KeyFrame.Draggable = true
+
+KeyTitle.Name = "Title"
+KeyTitle.Parent = KeyFrame
+KeyTitle.BackgroundTransparency = 1
+KeyTitle.Size = UDim2.new(1, 0, 0, 40)
+KeyTitle.Font = Enum.Font.GothamBold
+KeyTitle.Text = "DARK HUB | AUTHENTICATION"
+KeyTitle.TextColor3 = Color3.fromRGB(188, 78, 255)
+KeyTitle.TextSize = 18
+
+KeyInput.Name = "Input"
+KeyInput.Parent = KeyFrame
+KeyInput.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+KeyInput.BorderSizePixel = 0
+KeyInput.Position = UDim2.new(0.1, 0, 0.3, 0)
+KeyInput.Size = UDim2.new(0, 200, 0, 35)
+KeyInput.Font = Enum.Font.Gotham
+KeyInput.PlaceholderText = "Insira a Key..."
+KeyInput.Text = ""
+KeyInput.TextColor3 = Color3.fromRGB(255, 255, 255)
+KeyInput.TextSize = 14
+
+KeyButton.Name = "Verify"
+KeyButton.Parent = KeyFrame
+KeyButton.BackgroundColor3 = Color3.fromRGB(188, 78, 255)
+KeyButton.BorderSizePixel = 0
+KeyButton.Position = UDim2.new(0.1, 0, 0.6, 0)
+KeyButton.Size = UDim2.new(0, 200, 0, 35)
+KeyButton.Font = Enum.Font.GothamBold
+KeyButton.Text = "VERIFICAR"
+KeyButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+KeyButton.TextSize = 14
+
+-- Função que inicia o script original modificado
+local function StartDarkHub()
+    -- ======================== UNC / EXECUTOR COMPAT ========================
+    local function safeHttpGet(url)
+        local ok, res = pcall(function()
+            if syn and syn.request then
+                local r = syn.request({Url = url, Method = "GET"})
+                return r.Body
+            elseif http and http.request then
+                local r = http.request({Url = url, Method = "GET"})
+                return r.Body
+            elseif request then
+                local r = request({Url = url, Method = "GET"})
+                return r.Body
+            elseif http_request then
+                local r = http_request({Url = url, Method = "GET"})
+                return r.Body
+            elseif fluxus and fluxus.request then
+                local r = fluxus.request({Url = url, Method = "GET"})
+                return r.Body
+            else
+                return game:HttpGet(url)
+            end
+        end)
+        if ok and res then return res end
+        return game:HttpGet(url)
+    end
+
+    local Fluent = loadstring(safeHttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
+    local SaveManager = loadstring(safeHttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/SaveManager.lua"))()
+    local InterfaceManager = loadstring(safeHttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/InterfaceManager.lua"))()
+
+    if not Drawing then
+        pcall(function() Drawing = getgenv().Drawing or Drawing end)
+    end
+    if not Drawing then
+        warn("[DARK HUB] Drawing missing — ESP disabled")
+    end
+
+    local function safeDrawing(class)
+        if not Drawing then return nil end
+        local ok, obj = pcall(function() return Drawing.new(class) end)
+        if ok then return obj end
+        return nil
+    end
+
+    local function safeMousemove(x, y)
+        if mousemoverel then pcall(mousemoverel, x, y)
+        elseif Input and Input.MouseMove then pcall(Input.MouseMove, x, y) end
+    end
+
+    local function safeMouse1Click()
+        if mouse1click then pcall(mouse1click)
+        elseif mouse1press and mouse1release then
+            pcall(mouse1press)
+            task.wait(0.02)
+            pcall(mouse1release)
+        end
+    end
+
+    -- ======================== SERVICES ========================
+    local Players          = game:GetService("Players")
+    local RunService       = game:GetService("RunService")
+    local UserInputService = game:GetService("UserInputService")
+    local Workspace        = game:GetService("Workspace")
+    local Lighting         = game:GetService("Lighting")
+    local TweenService     = game:GetService("TweenService")
+    local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+    local LocalPlayer = Players.LocalPlayer
+    local Camera      = Workspace.CurrentCamera
+    local Mouse       = LocalPlayer:GetMouse()
+
+    -- ======================== SETTINGS ========================
+    local S = {
+        Aimbot        = false,
+        SilentAim     = false,
+        AlwaysOn      = false,
+        AimKey        = Enum.UserInputType.MouseButton2,
+        FOV           = 130,
+        Smoothness    = 0.14,
+        AimPart       = "Head",
+        Prediction    = true,
+        PredMult      = 0.09,
+        ShowFOV       = true,
+        FOVColor      = Color3.fromRGB(188, 78, 255),
+        FOVRainbow    = false,
+        TargetRole    = "Murderer",
+        KnifeAura     = false,
+        AuraDist      = 12,
+        AutoStab      = false,
+        AutoShoot     = false,
+        AutoThrow     = false,
+        KillAll       = false,
+        ESP           = true,
+        RoleESP       = true,
+        Box           = true,
+        Skeleton      = false,
+        Tracer        = true,
+        Name          = true,
+        Distance      = true,
+        Health        = true,
+        CoinESP       = true,
+        GunESP        = true,
+        MaxDist       = 2500,
+        MurdererColor = Color3.fromRGB(255, 55, 55),
+        SheriffColor  = Color3.fromRGB(55, 140, 255),
+        InnocentColor = Color3.fromRGB(80, 220, 120),
+        CoinColor     = Color3.fromRGB(255, 215, 60),
+        GunColor      = Color3.fromRGB(100, 180, 255),
+        AutoFarm      = false,
+        FarmSpeed     = 28,
+        FarmMode      = "Nearest",
+        AutoGrabGun   = true,
+        AutoOpenChest = false,
+        Fly           = false,
+        FlySpeed      = 70,
+        Noclip        = false,
+        Speed         = false,
+        WalkSpeed     = 26,
+        InfiniteJump  = false,
+        FullBright    = false,
+        NoFog         = false,
+        DiscordLED       = true,
+        DiscordLEDColor  = Color3.fromRGB(188, 78, 255),
+        DiscordLink      = "https://discord.gg/DARKHUB",
+        AccentColor      = Color3.fromRGB(188, 78, 255),
+        ThemeName        = "Darker",
+    }
+
+    -- ======================== STATE ========================
+    local HoldingAim = false
+    local espCache   = {}
+    local coinCache  = {}
+    local gunCache   = {}
+    local flyBV, flyBG
+    local origAmbient, origBrightness, origFog
+    local lastAura   = 0
+    local lastFarm   = 0
+    local roleCache  = {}
+
+    local FOVCircle = safeDrawing("Circle")
+    if FOVCircle then
+        FOVCircle.Visible = false
+        FOVCircle.Thickness = 1.4
+        FOVCircle.Filled = false
+        FOVCircle.NumSides = 64
+        FOVCircle.Transparency = 0.75
+        FOVCircle.Color = S.FOVColor
+        FOVCircle.Radius = S.FOV
+    end
+
+    local DiscordLEDGlow = safeDrawing("Text")
+    local DiscordLEDText = safeDrawing("Text")
+    local DiscordLEDLine = safeDrawing("Line")
+    if DiscordLEDGlow then
+        DiscordLEDGlow.Text = "DARK HUB | MM2"
+        DiscordLEDGlow.Size = 13
+        DiscordLEDGlow.Center = true
+        DiscordLEDGlow.Outline = false
+        DiscordLEDGlow.Color = S.DiscordLEDColor
+        DiscordLEDGlow.Transparency = 0.72
+        DiscordLEDGlow.Visible = S.DiscordLED
+    end
+    if DiscordLEDText then
+        DiscordLEDText.Text = "DARK HUB | MM2"
+        DiscordLEDText.Size = 12
+        DiscordLEDText.Center = true
+        DiscordLEDText.Outline = true
+        DiscordLEDText.Color = S.DiscordLEDColor
+        DiscordLEDText.Transparency = 1
+        DiscordLEDText.Visible = S.DiscordLED
+    end
+    if DiscordLEDLine then
+        DiscordLEDLine.Thickness = 1
+        DiscordLEDLine.Color = S.DiscordLEDColor
+        DiscordLEDLine.Transparency = 0.6
+        DiscordLEDLine.Visible = S.DiscordLED
+    end
+
+    -- ======================== ROLE DETECTION ========================
+    local function getRole(plr)
+        if not plr or plr == LocalPlayer then return "None" end
+        if roleCache[plr] and tick() - (roleCache[plr]._t or 0) < 0.8 then return roleCache[plr].role end
+        local role = "Innocent"
+        local char = plr.Character
+        if not char then roleCache[plr] = { role = "None", _t = tick() } return "None" end
+        local hasKnife, hasGun = false, false
+        for _, tool in ipairs(char:GetChildren()) do
+            if tool:IsA("Tool") then
+                local n = string.lower(tool.Name)
+                if n:find("knife") or n:find("blade") or n:find("dagger") or n:find("sword") then hasKnife = true end
+                if n:find("gun") or n:find("revolver") or n:find("pistol") or n:find("sheriff") then hasGun = true end
+            end
+        end
+        local bp = plr:FindFirstChild("Backpack")
+        if bp then
+            for _, tool in ipairs(bp:GetChildren()) do
+                if tool:IsA("Tool") then
+                    local n = string.lower(tool.Name)
+                    if n:find("knife") or n:find("blade") or n:find("dagger") then hasKnife = true end
+                    if n:find("gun") or n:find("revolver") or n:find("pistol") then hasGun = true end
+                end
+            end
+        end
+        local ok, val = pcall(function()
+            local r = plr:FindFirstChild("Role") or plr:FindFirstChild("role") or char:FindFirstChild("Role")
+            if r and (r:IsA("StringValue")) then return tostring(r.Value) end
+            if plr:GetAttribute("Role") then return tostring(plr:GetAttribute("Role")) end
+            if char:GetAttribute("Role") then return tostring(char:GetAttribute("Role")) end
+            return nil
+        end)
+        if ok and val then
+            local l = string.lower(val)
+            if l:find("murder") then role = "Murderer"
+            elseif l:find("sheriff") or l:find("hero") then role = "Sheriff"
+            elseif l:find("innocent") then role = "Innocent" end
+        else
+            if hasKnife then role = "Murderer" elseif hasGun then role = "Sheriff" else role = "Innocent" end
+        end
+        roleCache[plr] = { role = role, _t = tick() }
+        return role
+    end
+
+    local function getRoleColor(role)
+        if role == "Murderer" then return S.MurdererColor elseif role == "Sheriff" then return S.SheriffColor else return S.InnocentColor end
+    end
+
+    local function getChar(plr) return plr and plr.Character end
+    local function getHRP(plr) local c = getChar(plr) return c and c:FindFirstChild("HumanoidRootPart") end
+    local function getHum(plr) local c = getChar(plr) return c and c:FindFirstChildOfClass("Humanoid") end
+    local function isAlive(plr) local h = getHum(plr) return h and h.Health > 0 end
+    local function worldToScreen(pos) local v, on = Camera:WorldToViewportPoint(pos) return Vector2.new(v.X, v.Y), on, v.Z end
+
+    local function getClosestInFOV(roleFilter)
+        local best, bestDist = nil, S.FOV
+        local mousePos = Vector2.new(Mouse.X, Mouse.Y)
+        for _, plr in ipairs(Players:GetPlayers()) do
+            if plr ~= LocalPlayer and isAlive(plr) then
+                local role = getRole(plr)
+                if roleFilter == "Any" or role == roleFilter then
+                    local hrp = getHRP(plr)
+                    if hrp then
+                        local part = hrp
+                        if S.AimPart == "Head" then
+                            local head = getChar(plr):FindFirstChild("Head")
+                            if head then part = head end
+                        end
+                        local screen, onScreen = worldToScreen(part.Position)
+                        if onScreen then
+                            local d = (screen - mousePos).Magnitude
+                            if d < bestDist then bestDist = d best = part end
+                        end
+                    end
+                end
+            end
+        end
+        return best
+    end
+
+    local function aimAt(part)
+        if not part then return end
+        local pos = part.Position
+        if S.Prediction and part.Parent then
+            local hrp = part.Parent:FindFirstChild("HumanoidRootPart") or part
+            local vel = hrp.AssemblyLinearVelocity or hrp.Velocity or Vector3.zero
+            pos = pos + vel * S.PredMult
+        end
+        local screen, on = worldToScreen(pos)
+        if not on then return end
+        local mousePos = Vector2.new(Mouse.X, Mouse.Y)
+        local delta = (screen - mousePos) * math.clamp(1 - S.Smoothness, 0.05, 1)
+        safeMousemove(delta.X, delta.Y)
+    end
+
+    -- ======================== ESP SYSTEM ========================
+    local function clearESP(plr)
+        local c = espCache[plr]
+        if not c then return end
+        for _, obj in pairs(c) do pcall(function() if obj.Remove then obj:Remove() end end) end
+        espCache[plr] = nil
+    end
+
+    local function ensureESP(plr)
+        if espCache[plr] then return espCache[plr] end
+        local c = {
+            box = safeDrawing("Square"),
+            name = safeDrawing("Text"),
+            dist = safeDrawing("Text"),
+            health = safeDrawing("Line"),
+            tracer = safeDrawing("Line"),
+            skel = {},
+        }
+        if c.box then c.box.Thickness = 1.3 c.box.Filled = false c.box.Transparency = 1 end
+        if c.name then c.name.Size = 13 c.name.Center = true c.name.Outline = true c.name.Transparency = 1 end
+        if c.dist then c.dist.Size = 12 c.dist.Center = true c.dist.Outline = true c.dist.Transparency = 1 end
+        if c.health then c.health.Thickness = 2.2 c.health.Transparency = 1 end
+        if c.tracer then c.tracer.Thickness = 1.2 c.tracer.Transparency = 0.85 end
+        for i = 1, 12 do
+            local ln = safeDrawing("Line")
+            if ln then ln.Thickness = 1.1 ln.Transparency = 1 c.skel[i] = ln end
+        end
+        espCache[plr] = c
+        return c
+    end
+
+    local function updatePlayerESP()
+        if not S.ESP then for plr in pairs(espCache) do clearESP(plr) end return end
+        local myHRP = getHRP(LocalPlayer)
+        local myPos = myHRP and myHRP.Position or Camera.CFrame.Position
+        local bottom = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
+        for _, plr in ipairs(Players:GetPlayers()) do
+            if plr == LocalPlayer then continue end
+            local char = getChar(plr)
+            local hrp = getHRP(plr)
+            local hum = getHum(plr)
+            if not (char and hrp and hum and hum.Health > 0) then clearESP(plr) continue end
+            local dist = (hrp.Position - myPos).Magnitude
+            if dist > S.MaxDist then clearESP(plr) continue end
+            local role = getRole(plr)
+            local col = getRoleColor(role)
+            local c = ensureESP(plr)
+            local head = char:FindFirstChild("Head")
+            local topPos = head and head.Position or (hrp.Position + Vector3.new(0, 2.2, 0))
+            local bottomPos = hrp.Position - Vector3.new(0, 3, 0)
+            local top2d, on1, z1 = worldToScreen(topPos)
+            local bot2d, on2 = worldToScreen(bottomPos)
+            local hrp2d = worldToScreen(hrp.Position)
+            if not (on1 and on2) then
+                if c.box then c.box.Visible = false end
+                if c.name then c.name.Visible = false end
+                if c.dist then c.dist.Visible = false end
+                if c.health then c.health.Visible = false end
+                if c.tracer then c.tracer.Visible = false end
+                for _, ln in pairs(c.skel) do if ln then ln.Visible = false end end
+                continue
+            end
+            local height = math.abs(bot2d.Y - top2d.Y)
+            local width = height * 0.55
+            local boxPos = Vector2.new(top2d.X - width / 2, top2d.Y)
+            if S.Box and c.box then c.box.Visible = true c.box.Position = boxPos c.box.Size = Vector2.new(width, height) c.box.Color = col
+            elseif c.box then c.box.Visible = false end
+            if S.Name and c.name then
+                c.name.Visible = true c.name.Position = Vector2.new(top2d.X, top2d.Y - 16)
+                local roleTag = S.RoleESP and (" [" .. role .. "]") or ""
+                c.name.Text = plr.Name .. roleTag c.name.Color = col
+            elseif c.name then c.name.Visible = false end
+            if S.Distance and c.dist then
+                c.dist.Visible = true c.dist.Position = Vector2.new(bot2d.X, bot2d.Y + 2)
+                c.dist.Text = string.format("%.0fm", dist) c.dist.Color = col
+            elseif c.dist then c.dist.Visible = false end
+            if S.Health and c.health then
+                local pct = math.clamp(hum.Health / math.max(hum.MaxHealth, 1), 0, 1)
+                c.health.Visible = true c.health.From = Vector2.new(boxPos.X - 4, bot2d.Y)
+                c.health.To = Vector2.new(boxPos.X - 4, bot2d.Y - height * pct)
+                c.health.Color = Color3.fromRGB(255 * (1 - pct), 255 * pct, 40)
+            elseif c.health then c.health.Visible = false end
+            if S.Tracer and c.tracer then
+                c.tracer.Visible = true c.tracer.From = bottom c.tracer.To = hrp2d c.tracer.Color = col
+            elseif c.tracer then c.tracer.Visible = false end
+            if S.Skeleton then
+                local bones = {{"Head", "UpperTorso"}, {"UpperTorso", "LowerTorso"}, {"UpperTorso", "LeftUpperArm"}, {"LeftUpperArm", "LeftLowerArm"}, {"LeftLowerArm", "LeftHand"}, {"UpperTorso", "RightUpperArm"}, {"RightUpperArm", "RightLowerArm"}, {"RightLowerArm", "RightHand"}, {"LowerTorso", "LeftUpperLeg"}, {"LeftUpperLeg", "LeftLowerLeg"}, {"LeftLowerLeg", "LeftFoot"}, {"LowerTorso", "RightUpperLeg"}, {"RightUpperLeg", "RightLowerLeg"}, {"RightLowerLeg", "RightFoot"}}
+                if not char:FindFirstChild("UpperTorso") then bones = {{"Head", "Torso"}, {"Torso", "Left Arm"}, {"Torso", "Right Arm"}, {"Torso", "Left Leg"}, {"Torso", "Right Leg"}} end
+                for i, pair in ipairs(bones) do
+                    local a = char:FindFirstChild(pair[1])
+                    local b = char:FindFirstChild(pair[2])
+                    local ln = c.skel[i]
+                    if a and b and ln then
+                        local p1, o1 = worldToScreen(a.Position)
+                        local p2, o2 = worldToScreen(b.Position)
+                        if o1 and o2 then ln.Visible = true ln.From = p1 ln.To = p2 ln.Color = col else ln.Visible = false end
+                    elseif ln then ln.Visible = false end
+                end
+            else for _, ln in pairs(c.skel) do if ln then ln.Visible = false end end end
+        end
+        for plr in pairs(espCache) do if not Players:FindFirstChild(plr.Name) then clearESP(plr) end end
+    end
+
+    local function updateWorldESP()
+        if S.CoinESP then
+            for _, obj in ipairs(Workspace:GetDescendants()) do
+                if obj:IsA("BasePart") and (string.lower(obj.Name):find("coin") or obj.Name == "CoinContainer") then
+                    if not coinCache[obj] then
+                        local t = safeDrawing("Text")
+                        if t then t.Size = 12 t.Center = true t.Outline = true t.Color = S.CoinColor t.Text = "COIN" coinCache[obj] = t end
+                    end
+                    local t = coinCache[obj]
+                    if t then local p, on = worldToScreen(obj.Position) t.Visible = on if on then t.Position = p end end
+                end
+            end
+        else for obj, t in pairs(coinCache) do pcall(function() t:Remove() end) coinCache[obj] = nil end end
+        if S.GunESP then
+            for _, obj in ipairs(Workspace:GetDescendants()) do
+                if obj:IsA("BasePart") or obj:IsA("Model") then
+                    local n = string.lower(obj.Name)
+                    if n:find("gun") or n:find("revolver") or n == "gundrop" then
+                        local part = obj:IsA("BasePart") and obj or obj:FindFirstChildWhichIsA("BasePart")
+                        if part and not gunCache[obj] then
+                            local t = safeDrawing("Text")
+                            if t then t.Size = 13 t.Center = true t.Outline = true t.Color = S.GunColor t.Text = "GUN" gunCache[obj] = t end
+                        end
+                        local t = gunCache[obj]
+                        if t and part then local p, on = worldToScreen(part.Position) t.Visible = on if on then t.Position = p end end
+                    end
+                end
+            end
+        else for obj, t in pairs(gunCache) do pcall(function() t:Remove() end) gunCache[obj] = nil end end
+    end
+
+    -- ======================== COMBAT ========================
+    local function knifeAuraStep()
+        if not (S.KnifeAura or S.AutoStab or S.KillAll) then return end
+        if tick() - lastAura < 0.12 then return end
+        local myChar = LocalPlayer.Character
+        if not myChar then return end
+        local myHRP = myChar:FindFirstChild("HumanoidRootPart")
+        if not myHRP then return end
+        local tool = myChar:FindFirstChildOfClass("Tool")
+        local isKnife = tool and string.lower(tool.Name):find("knife")
+        for _, plr in ipairs(Players:GetPlayers()) do
+            if plr == LocalPlayer or not isAlive(plr) then continue end
+            local hrp = getHRP(plr)
+            if not hrp then continue end
+            local dist = (hrp.Position - myHRP.Position).Magnitude
+            if dist <= S.AuraDist then
+                if S.KillAll or S.KnifeAura or S.AutoStab then
+                    pcall(function() if tool and tool:FindFirstChild("Handle") then tool:Activate() end safeMouse1Click() end)
+                    lastAura = tick() break
+                end
+            end
+        end
+    end
+
+    local function autoShootStep()
+        if not S.AutoShoot then return end
+        local myChar = LocalPlayer.Character
+        if not myChar then return end
+        local tool = myChar:FindFirstChildOfClass("Tool")
+        if not tool then return end
+        local n = string.lower(tool.Name)
+        if not (n:find("gun") or n:find("revolver") or n:find("pistol")) then return end
+        local target = getClosestInFOV("Murderer")
+        if target then aimAt(target) safeMouse1Click() end
+    end
+
+    -- ======================== FARM ========================
+    local function farmStep()
+        if not S.AutoFarm then return end
+        if tick() - lastFarm < 0.15 then return end
+        local myChar = LocalPlayer.Character
+        local myHRP = myChar and myChar:FindFirstChild("HumanoidRootPart")
+        if not myHRP then return end
+        local best, bestD = nil, math.huge
+        for _, obj in ipairs(Workspace:GetDescendants()) do
+            if obj:IsA("BasePart") and string.lower(obj.Name):find("coin") then
+                local d = (obj.Position - myHRP.Position).Magnitude
+                if d < bestD then bestD = d best = obj end
+            end
+        end
+        if best then
+            local target = best.Position + Vector3.new(0, 2, 0)
+            if S.FarmMode == "Nearest" then
+                local dir = (target - myHRP.Position)
+                if dir.Magnitude > 2 then myHRP.CFrame = myHRP.CFrame:Lerp(CFrame.new(target), 0.18) end
+            else myHRP.CFrame = CFrame.new(target) end
+            lastFarm = tick()
+        end
+        if S.AutoGrabGun then
+            for _, obj in ipairs(Workspace:GetDescendants()) do
+                local n = string.lower(obj.Name)
+                if (n:find("gun") or n:find("revolver")) and (obj:IsA("BasePart") or obj:IsA("Model")) then
+                    local part = obj:IsA("BasePart") and obj or obj:FindFirstChildWhichIsA("BasePart")
+                    if part and (part.Position - myHRP.Position).Magnitude < 18 then
+                        myHRP.CFrame = CFrame.new(part.Position + Vector3.new(0, 2, 0)) break
+                    end
+                end
+            end
+        end
+    end
+
+    -- ======================== MOVEMENT ========================
+    local function flyStep()
+        local char = LocalPlayer.Character
+        local hrp = char and char:FindFirstChild("HumanoidRootPart")
+        local hum = char and char:FindFirstChildOfClass("Humanoid")
+        if not (hrp and hum) then return end
+        if S.Fly then
+            if not flyBV then
+                flyBV = Instance.new("BodyVelocity") flyBV.MaxForce = Vector3.new(1e5, 1e5, 1e5) flyBV.Velocity = Vector3.zero flyBV.Parent = hrp
+                flyBG = Instance.new("BodyGyro") flyBG.MaxTorque = Vector3.new(1e5, 1e5, 1e5) flyBG.P = 1e4 flyBG.Parent = hrp
+            end
+            local cam = Camera.CFrame
+            local dir = Vector3.zero
+            if UserInputService:IsKeyDown(Enum.KeyCode.W) then dir = dir + cam.LookVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.S) then dir = dir - cam.LookVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.A) then dir = dir - cam.RightVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.D) then dir = dir + cam.RightVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.Space) then dir = dir + Vector3.new(0, 1, 0) end
+            if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then dir = dir - Vector3.new(0, 1, 0) end
+            flyBV.Velocity = dir.Magnitude > 0 and dir.Unit * S.FlySpeed or Vector3.zero
+            flyBG.CFrame = cam
+            hum.PlatformStand = true
+        else
+            if flyBV then flyBV:Destroy() flyBV = nil end
+            if flyBG then flyBG:Destroy() flyBG = nil end
+            if hum then hum.PlatformStand = false end
+        end
+    end
+
+    local function noclipStep()
+        local char = LocalPlayer.Character
+        if not char then return end
+        for _, part in ipairs(char:GetDescendants()) do if part:IsA("BasePart") then part.CanCollide = not S.Noclip end end
+    end
+
+    local function speedStep()
+        local hum = getHum(LocalPlayer)
+        if hum and S.Speed then hum.WalkSpeed = S.WalkSpeed end
+    end
+
+    -- ======================== WORLD ========================
+    local function applyWorld()
+        if S.FullBright then
+            if not origAmbient then origAmbient = Lighting.Ambient origBrightness = Lighting.Brightness end
+            Lighting.Ambient = Color3.new(1, 1, 1) Lighting.Brightness = 2
+        elseif origAmbient then Lighting.Ambient = origAmbient Lighting.Brightness = origBrightness or 1 end
+        if S.NoFog then
+            if not origFog then origFog = Lighting.FogEnd end
+            Lighting.FogEnd = 1e6
+        elseif origFog then Lighting.FogEnd = origFog end
+    end
+
+    -- ======================== INPUT ========================
+    UserInputService.InputBegan:Connect(function(input, gpe)
+        if gpe then return end
+        if input.UserInputType == S.AimKey or input.KeyCode == Enum.KeyCode.E then HoldingAim = true end
+        if input.KeyCode == Enum.KeyCode.Space and S.InfiniteJump then
+            local hum = getHum(LocalPlayer)
+            if hum then hum:ChangeState(Enum.HumanoidStateType.Jumping) end
+        end
+    end)
+
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == S.AimKey or input.KeyCode == Enum.KeyCode.E then HoldingAim = false end
+    end)
+
+    -- ======================== FLUENT WINDOW ========================
+    local Window = Fluent:CreateWindow({
+        Title = "DARK HUB",
+        SubTitle = "Murder Mystery 2",
+        TabWidth = 140,
+        Size = UDim2.fromOffset(500, 400),
+        Acrylic = true,
+        Theme = "Darker",
+        MinimizeKey = Enum.KeyCode.Insert
+    })
+
+    local Tabs = {
+        Home      = Window:AddTab({ Title = "Home", Icon = "home" }),
+        Combat    = Window:AddTab({ Title = "Combat", Icon ="crosshair" }),
+        Visuals   = Window:AddTab({ Title = "Visuals", Icon = "eye" }),
+        Farm      = Window:AddTab({ Title = "Farm", Icon = "coins" }),
+        Player    = Window:AddTab({ Title = "Player", Icon = "user" }),
+        Customize = Window:AddTab({ Title = "Customize", Icon = "palette" }),
+        Misc      = Window:AddTab({ Title = "Misc", Icon = "settings" }),
+        About     = Window:AddTab({ Title = "About", Icon = "info" }),
+    }
+
+    local Options = Fluent.Options
+
+    -- ======================== HOME ========================
+    do
+        Tabs.Home:AddSection("DARK HUB · MM2")
+        Tabs.Home:AddParagraph({
+            Title = "DARK HUB",
+            Content = "Murder Mystery 2 · Fluent UI\nKeyed · UNC · discord.gg/DARKHUB"
+        })
+        Tabs.Home:AddParagraph({
+            Title = "Quick Load",
+            Content = "Core toggles. Full controls in other tabs."
+        })
+        Tabs.Home:AddToggle("HomeESP", {
+            Title = "Role ESP",
+            Default = true,
+            Callback = function(v)
+                S.ESP = v
+                if Options.ESPEnable then Options.ESPEnable:SetValue(v) end
+            end
+        })
+        Tabs.Home:AddToggle("HomeAim", {
+            Title = "Aimbot",
+            Default = false,
+            Callback = function(v)
+                S.Aimbot = v
+                if FOVCircle then FOVCircle.Visible = v and S.ShowFOV end
+                if Options.AimEnable then Options.AimEnable:SetValue(v) end
+            end
+        })
+        Tabs.Home:AddToggle("HomeAura", {
+            Title = "Knife Aura",
+            Default = false,
+            Callback = function(v)
+                S.KnifeAura = v
+                if Options.AuraEnable then Options.AuraEnable:SetValue(v) end
+            end
+        })
+        Tabs.Home:AddToggle("HomeFarm", {
+            Title = "Auto Farm Coins",
+            Default = false,
+            Callback = function(v)
+                S.AutoFarm = v
+                if Options.FarmEnable then Options.FarmEnable:SetValue(v) end
+            end
+        })
+        Tabs.Home:AddToggle("HomeFly", {
+            Title = "Fly",
+            Default = false,
+            Callback = function(v)
+                S.Fly = v
+                if Options.FlyEnable then Options.FlyEnable:SetValue(v) end
+            end
+        })
+        Tabs.Home:AddButton({
+            Title = "Join Discord",
+            Description = "discord.gg/DARKHUB",
+            Callback = function()
+                pcall(function()
+                    if setclipboard then setclipboard(S.DiscordLink) end
+                end)
+                Fluent:Notify({ Title = "DARK HUB", Content = "Discord link copied", Duration = 3 })
+            end
+        })
+    end
+
+    -- ======================== COMBAT ========================
+    do
+        Tabs.Combat:AddSection("Aim")
+        Tabs.Combat:AddToggle("AimEnable", {
+            Title = "Enable Aimbot",
+            Default = false,
+            Callback = function(v)
+                S.Aimbot = v
+                if FOVCircle then FOVCircle.Visible = v and S.ShowFOV end
+                if Options.HomeAim then Options.HomeAim:SetValue(v) end
+            end
+        })
+        Tabs.Combat:AddToggle("SilentEnable", {
+            Title = "Silent Aim",
+            Default = false,
+            Callback = function(v) S.SilentAim = v end
+        })
+        Tabs.Combat:AddToggle("AlwaysOn", {
+            Title = "Always On",
+            Default = false,
+            Callback = function(v) S.AlwaysOn = v end
+        })
+        Tabs.Combat:AddDropdown("TargetRole", {
+            Title = "Target Role",
+            Values = {"Murderer", "Sheriff", "Any"},
+            Default = 1,
+            Callback = function(v) S.TargetRole = v end
+        })
+        Tabs.Combat:AddSlider("FOV", {
+            Title = "FOV",
+            Default = 130,
+            Min = 40,
+            Max = 400,
+            Rounding = 0,
+            Callback = function(v)
+                S.FOV = v
+                if FOVCircle then FOVCircle.Radius = v end
+            end
+        })
+        Tabs.Combat:AddSlider("Smooth", {
+            Title = "Smoothness",
+            Default = 0.14,
+            Min = 0.01,
+            Max = 0.5,
+            Rounding = 2,
+            Callback = function(v) S.Smoothness = v end
+        })
+        Tabs.Combat:AddDropdown("AimPart", {
+            Title = "Aim Part",
+            Values = {"Head", "HumanoidRootPart"},
+            Default = 1,
+            Callback = function(v) S.AimPart = v end
+        })
+        Tabs.Combat:AddToggle("ShowFOV", {
+            Title = "Show FOV Circle",
+            Default = true,
+            Callback = function(v)
+                S.ShowFOV = v
+                if FOVCircle then FOVCircle.Visible = S.Aimbot and v end
+            end
+        })
+        Tabs.Combat:AddToggle("FOVRainbow", {
+            Title = "FOV Rainbow",
+            Default = false,
+            Callback = function(v) S.FOVRainbow = v end
+        })
+
+        Tabs.Combat:AddSection("Knife / Gun")
+        Tabs.Combat:AddToggle("AuraEnable", {
+            Title = "Knife Aura",
+            Default = false,
+            Callback = function(v)
+                S.KnifeAura = v
+                if Options.HomeAura then Options.HomeAura:SetValue(v) end
+            end
+        })
+        Tabs.Combat:AddSlider("AuraDist", {
+            Title = "Aura Distance",
+            Default = 12,
+            Min = 5,
+            Max = 40,
+            Rounding = 0,
+            Callback = function(v) S.AuraDist = v end
+        })
+        Tabs.Combat:AddToggle("AutoStab", {
+            Title = "Auto Stab",
+            Default = false,
+            Callback = function(v) S.AutoStab = v end
+        })
+        Tabs.Combat:AddToggle("AutoShoot", {
+            Title = "Auto Shoot Murderer",
+            Default = false,
+            Callback = function(v) S.AutoShoot = v end
+        })
+        Tabs.Combat:AddToggle("KillAll", {
+            Title = "Kill All (Aura)",
+            Default = false,
+            Callback = function(v) S.KillAll = v end
+        })
+    end
+
+    -- ======================== VISUALS ========================
+    do
+        Tabs.Visuals:AddSection("Player ESP")
+        Tabs.Visuals:AddToggle("ESPEnable", {
+            Title = "Enable ESP",
+            Default = true,
+            Callback = function(v)
+                S.ESP = v
+                if Options.HomeESP then Options.HomeESP:SetValue(v) end
+            end
+        })
+        Tabs.Visuals:AddToggle("RoleESP", {
+            Title = "Show Role Tag",
+            Default = true,
+            Callback = function(v) S.RoleESP = v end
+        })
+        Tabs.Visuals:AddToggle("BoxESP", {
+            Title = "Box",
+            Default = true,
+            Callback = function(v) S.Box = v end
+        })
+        Tabs.Visuals:AddToggle("SkelESP", {
+            Title = "Skeleton",
+            Default = false,
+            Callback = function(v) S.Skeleton = v end
+        })
+        Tabs.Visuals:AddToggle("TracerESP", {
+            Title = "Tracers",
+            Default = true,
+            Callback = function(v) S.Tracer = v end
+        })
+        Tabs.Visuals:AddToggle("NameESP", {
+            Title = "Name",
+            Default = true,
+            Callback = function(v) S.Name = v end
+        })
+        Tabs.Visuals:AddToggle("DistESP", {
+            Title = "Distance",
+            Default = true,
+            Callback = function(v) S.Distance = v end
+        })
+        Tabs.Visuals:AddToggle("HealthESP", {
+            Title = "Health Bar",
+            Default = true,
+            Callback = function(v) S.Health = v end
+        })
+
+        Tabs.Visuals:AddSection("World ESP")
+        Tabs.Visuals:AddToggle("CoinESP", {
+            Title = "Coin ESP",
+            Default = true,
+            Callback = function(v) S.CoinESP = v end
+        })
+        Tabs.Visuals:AddToggle("GunESP", {
+            Title = "Gun Drop ESP",
+            Default = true,
+            Callback = function(v) S.GunESP = v end
+        })
+
+        Tabs.Visuals:AddSection("Colors")
+        Tabs.Visuals:AddColorpicker("MurdererCol", {
+            Title = "Murderer",
+            Default = S.MurdererColor,
+            Callback = function(v) S.MurdererColor = v end
+        })
+        Tabs.Visuals:AddColorpicker("SheriffCol", {
+            Title = "Sheriff",
+            Default = S.SheriffColor,
+            Callback = function(v) S.SheriffColor = v end
+        })
+        Tabs.Visuals:AddColorpicker("InnocentCol", {
+            Title = "Innocent",
+            Default = S.InnocentColor,
+            Callback = function(v) S.InnocentColor = v end
+        })
+    end
+
+    -- ======================== FARM ========================
+    do
+        Tabs.Farm:AddSection("Coins")
+        Tabs.Farm:AddToggle("FarmEnable", {
+            Title = "Auto Farm Coins",
+            Default = false,
+            Callback = function(v)
+                S.AutoFarm = v
+                if Options.HomeFarm then Options.HomeFarm:SetValue(v) end
+            end
+        })
+        Tabs.Farm:AddDropdown("FarmMode", {
+            Title = "Farm Mode",
+            Values = {"Nearest", "Teleport"},
+            Default = 1,
+            Callback = function(v) S.FarmMode = v end
+        })
+        Tabs.Farm:AddToggle("AutoGrabGun", {
+            Title = "Auto Grab Dropped Gun",
+            Default = true,
+            Callback = function(v) S.AutoGrabGun = v end
+        })
+        Tabs.Farm:AddButton({
+            Title = "TP to Nearest Coin",
+            Callback = function()
+                local myHRP = getHRP(LocalPlayer)
+                if not myHRP then return end
+                local best, bestD = nil, math.huge
+                for _, obj in ipairs(Workspace:GetDescendants()) do
+                    if obj:IsA("BasePart") and string.lower(obj.Name):find("coin") then
+                        local d = (obj.Position - myHRP.Position).Magnitude
+                        if d < bestD then bestD = d best = obj end
+                    end
+                end
+                if best then
+                    myHRP.CFrame = CFrame.new(best.Position + Vector3.new(0, 3, 0))
+                end
+            end
+        })
+        Tabs.Farm:AddButton({
+            Title = "TP to Dropped Gun",
+            Callback = function()
+                local myHRP = getHRP(LocalPlayer)
+                if not myHRP then return end
+                for _, obj in ipairs(Workspace:GetDescendants()) do
+                    local n = string.lower(obj.Name)
+                    if n:find("gun") or n:find("revolver") then
+                        local part = obj:IsA("BasePart") and obj or obj:FindFirstChildWhichIsA("BasePart")
+                        if part then
+                            myHRP.CFrame = CFrame.new(part.Position + Vector3.new(0, 3, 0))
+                            break
+                        end
+                    end
+                end
+            end
+        })
+    end
+
+    -- ======================== PLAYER ========================
+    do
+        Tabs.Player:AddSection("Movement")
+        Tabs.Player:AddToggle("FlyEnable", {
+            Title = "Fly",
+            Default = false,
+            Callback = function(v)
+                S.Fly = v
+                if Options.HomeFly then Options.HomeFly:SetValue(v) end
+            end
+        })
+        Tabs.Player:AddSlider("FlySpeed", {
+            Title = "Fly Speed",
+            Default = 70,
+            Min = 20,
+            Max = 200,
+            Rounding = 0,
+            Callback = function(v) S.FlySpeed = v end
+        })
+        Tabs.Player:AddToggle("NoclipEnable", {
+            Title = "Noclip",
+            Default = false,
+            Callback = function(v) S.Noclip = v end
+        })
+        Tabs.Player:AddToggle("SpeedEnable", {
+            Title = "Speed",
+            Default = false,
+            Callback = function(v) S.Speed = v end
+        })
+        Tabs.Player:AddSlider("WalkSpeed", {
+            Title = "Walk Speed",
+            Default = 26,
+            Min = 16,
+            Max = 100,
+            Rounding = 0,
+            Callback = function(v) S.WalkSpeed = v end
+        })
+        Tabs.Player:AddToggle("InfJump", {
+            Title = "Infinite Jump",
+            Default = false,
+            Callback = function(v) S.InfiniteJump = v end
+        })
+
+        Tabs.Player:AddSection("Teleport")
+        Tabs.Player:AddButton({
+            Title = "TP to Murderer",
+            Callback = function()
+                local myHRP = getHRP(LocalPlayer)
+                if not myHRP then return end
+                for _, plr in ipairs(Players:GetPlayers()) do
+                    if plr ~= LocalPlayer and getRole(plr) == "Murderer" and isAlive(plr) then
+                        local hrp = getHRP(plr)
+                        if hrp then
+                            myHRP.CFrame = hrp.CFrame * CFrame.new(0, 0, 3)
+                            break
+                        end
+                    end
+                end
+            end
+        })
+        Tabs.Player:AddButton({
+            Title = "TP to Sheriff",
+            Callback = function()
+                local myHRP = getHRP(LocalPlayer)
+                if not myHRP then return end
+                for _, plr in ipairs(Players:GetPlayers()) do
+                    if plr ~= LocalPlayer and getRole(plr) == "Sheriff" and isAlive(plr) then
+                        local hrp = getHRP(plr)
+                        if hrp then
+                            myHRP.CFrame = hrp.CFrame * CFrame.new(0, 0, 3)
+                            break
+                        end
+                    end
+                end
+            end
+        })
+    end
+
+    -- ======================== CUSTOMIZE ========================
+    do
+        Tabs.Customize:AddSection("Theme")
+        Tabs.Customize:AddDropdown("ThemeSelect", {
+            Title = "Theme Preset",
+            Values = {"Dark", "Darker", "Amethyst", "Aqua", "Rose", "Light"},
+            Default = 2,
+            Callback = function(v)
+                S.ThemeName = v
+                pcall(function() Fluent:SetTheme(v) end)
+            end
+        })
+        Tabs.Customize:AddColorpicker("AccentPick", {
+            Title = "Accent Color",
+            Default = S.AccentColor,
+            Callback = function(v)
+                S.AccentColor = v
+                S.FOVColor = v
+                S.DiscordLEDColor = v
+                if FOVCircle then FOVCircle.Color = v end
+                if DiscordLEDText then DiscordLEDText.Color = v end
+                if DiscordLEDGlow then DiscordLEDGlow.Color = v end
+                if DiscordLEDLine then DiscordLEDLine.Color = v end
+            end
+        })
+        Tabs.Customize:AddColorpicker("FOVColorPick", {
+            Title = "FOV Circle Color",
+            Default = S.FOVColor,
+            Callback = function(v)
+                S.FOVColor = v
+                if FOVCircle then FOVCircle.Color = v end
+            end
+        })
+        Tabs.Customize:AddToggle("DiscordLEDToggle", {
+            Title = "Discord LED",
+            Default = true,
+            Callback = function(v)
+                S.DiscordLED = v
+                if DiscordLEDText then DiscordLEDText.Visible = v end
+                if DiscordLEDGlow then DiscordLEDGlow.Visible = v end
+                if DiscordLEDLine then DiscordLEDLine.Visible = v end
+            end
+        })
+        Tabs.Customize:AddColorpicker("LEDColor", {
+            Title = "LED Color",
+            Default = S.DiscordLEDColor,
+            Callback = function(v)
+                S.DiscordLEDColor = v
+                if DiscordLEDText then DiscordLEDText.Color = v end
+                if DiscordLEDGlow then DiscordLEDGlow.Color = v end
+                if DiscordLEDLine then DiscordLEDLine.Color = v end
+            end
+        })
+    end
+
+    -- ======================== MISC ========================
+    do
+        Tabs.Misc:AddSection("World")
+        Tabs.Misc:AddToggle("FullBright", {
+            Title = "Full Bright",
+            Default = false,
+            Callback = function(v)
+                S.FullBright = v
+                applyWorld()
+            end
+        })
+        Tabs.Misc:AddToggle("NoFog", {
+            Title = "No Fog",
+            Default = false,
+            Callback = function(v)
+                S.NoFog = v
+                applyWorld()
+            end
+        })
+        Tabs.Misc:AddSection("Config")
+        Tabs.Misc:AddButton({
+            Title = "Copy Discord Link",
+            Callback = function()
+                pcall(function() if setclipboard then setclipboard(S.DiscordLink) end end)
+                Fluent:Notify({ Title = "DARK HUB", Content = "Copied discord.gg/DARKHUB", Duration = 2 })
+            end
+        })
+    end
+
+    -- ======================== ABOUT ========================
+    do
+        Tabs.About:AddParagraph({
+            Title = "DARK HUB",
+            Content = "Murder Mystery 2 build\nFluent UI · compact dense layout\nKeyed · UNC universal"
+        })
+        Tabs.About:AddParagraph({
+            Title = "Features",
+            Content = "Role ESP · Coin/Gun ESP · Aimbot/Silent\nKnife Aura · Auto Farm · Auto Shoot\nFly/Noclip/Speed · Full Customize"
+        })
+        Tabs.About:AddParagraph({
+            Title = "Discord",
+            Content = "discord.gg/DARKHUB"
+        })
+        Tabs.About:AddButton({
+            Title = "Join Discord",
+            Callback = function()
+                pcall(function() if setclipboard then setclipboard(S.DiscordLink) end end)
+                Fluent:Notify({ Title = "DARK HUB", Content = "Link copied", Duration = 2 })
+            end
+        })
+    end
+
+    -- Managers
+    SaveManager:SetLibrary(Fluent)
+    InterfaceManager:SetLibrary(Fluent)
+    SaveManager:IgnoreThemeSettings()
+    InterfaceManager:SetFolder("DARK_HUB_MM2")
+    SaveManager:SetFolder("DARK_HUB_MM2")
+    InterfaceManager:BuildInterfaceSection(Tabs.Misc)
+    SaveManager:BuildConfigSection(Tabs.Misc)
+
+    Window:SelectTab(1)
+
+    Fluent:Notify({
+        Title = "DARK HUB",
+        Content = "Murder Mystery 2 loaded",
+        Duration = 4
+    })
+
+    -- ======================== MAIN LOOP ========================
+    RunService.RenderStepped:Connect(function()
+        if FOVCircle then
+            FOVCircle.Position = Vector2.new(Mouse.X, Mouse.Y)
+            FOVCircle.Radius = S.FOV
+            if S.FOVRainbow then
+                local h = (tick() * 0.4) % 1
+                FOVCircle.Color = Color3.fromHSV(h, 0.85, 1)
+            else
+                FOVCircle.Color = S.FOVColor
+            end
+            FOVCircle.Visible = S.Aimbot and S.ShowFOV
+        end
+
+        local target = getClosestInFOV(S.TargetRole)
+        if S.Aimbot and (HoldingAim or S.AlwaysOn) and target then
+            aimAt(target)
+        elseif S.SilentAim and target then
+            aimAt(target)
+        end
+
+        knifeAuraStep()
+        autoShootStep()
+        farmStep()
+        updatePlayerESP()
+        updateWorldESP()
+        flyStep()
+        noclipStep()
+        speedStep()
+
+        if S.DiscordLED and DiscordLEDText then
+            local vs = Camera.ViewportSize
+            local y, x = vs.Y - 18, vs.X / 2
+            DiscordLEDText.Position = Vector2.new(x, y)
+            if DiscordLEDGlow then
+                DiscordLEDGlow.Position = Vector2.new(x, y)
+                DiscordLEDGlow.Color = S.DiscordLEDColor
+            end
+            DiscordLEDText.Color = S.DiscordLEDColor
+            if DiscordLEDLine then
+                DiscordLEDLine.From = Vector2.new(x - 70, y - 10)
+                DiscordLEDLine.To = Vector2.new(x + 70, y - 10)
+                DiscordLEDLine.Color = S.DiscordLEDColor
+            end
+        end
+    end)
+
+    Players.PlayerRemoving:Connect(function(plr)
+        clearESP(plr)
+        roleCache[plr] = nil
+    end)
+
+    pcall(function() SaveManager:LoadAutoloadConfig() end)
+    print("[DARK HUB] Murder Mystery 2 loaded — Home tab active")
+end
+
+-- Executa o sistema de Key e, se correto, inicia o DarkHub
+KeyButton.MouseButton1Click:Connect(function()
+    if KeyInput.Text == KeyCorrect then
+        KeyGui:Destroy()
+        StartDarkHub()
+    else
+        KeyButton.Text = "KEY INCORRETA!"
+        task.wait(1)
+        KeyButton.Text = "VERIFICAR"
+    end
+end)
