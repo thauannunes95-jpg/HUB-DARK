@@ -1,0 +1,260 @@
+-- DARK HUB | ARSENAL EDITION
+-- Reconstrução completa baseada nas funcionalidades do LuaWare Arsenal
+
+-- ======================== KEY SYSTEM ========================
+local KeyCorrect = "DARK"
+local UserInputService = game:GetService("UserInputService")
+
+local KeyGui = Instance.new("ScreenGui")
+local KeyFrame = Instance.new("Frame")
+local KeyTitle = Instance.new("TextLabel")
+local KeyInput = Instance.new("TextBox")
+local KeyButton = Instance.new("TextButton")
+
+KeyGui.Name = "DarkHubKeySystem"
+KeyGui.Parent = game:GetService("CoreGui")
+
+KeyFrame.Name = "MainFrame"
+KeyFrame.Parent = KeyGui
+KeyFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+KeyFrame.BorderSizePixel = 0
+KeyFrame.Position = UDim2.new(0.4, 0, 0.4, 0)
+KeyFrame.Size = UDim2.new(0, 300, 0, 160)
+KeyFrame.Active = true
+KeyFrame.Draggable = true
+
+KeyTitle.Name = "Title"
+KeyTitle.Parent = KeyFrame
+KeyTitle.BackgroundTransparency = 1
+KeyTitle.Size = UDim2.new(1, 0, 0, 40)
+KeyTitle.Font = Enum.Font.GothamBold
+KeyTitle.Text = "DARK HUB | ARSENAL AUTH"
+KeyTitle.TextColor3 = Color3.fromRGB(188, 78, 255)
+KeyTitle.TextSize = 18
+
+KeyInput.Name = "Input"
+KeyInput.Parent = KeyFrame
+KeyInput.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+KeyInput.BorderSizePixel = 0
+KeyInput.Position = UDim2.new(0.1, 0, 0.3, 0)
+KeyInput.Size = UDim2.new(0, 200, 0, 35)
+KeyInput.Font = Enum.Font.Gotham
+KeyInput.PlaceholderText = "Insira a Key..."
+KeyInput.Text = ""
+KeyInput.TextColor3 = Color3.fromRGB(255, 255, 255)
+KeyInput.TextSize = 14
+
+KeyButton.Name = "Verify"
+KeyButton.Parent = KeyFrame
+KeyButton.BackgroundColor3 = Color3.fromRGB(188, 78, 255)
+KeyButton.BorderSizePixel = 0
+KeyButton.Position = UDim2.new(0.1, 0, 0.6, 0)
+KeyButton.Size = UDim2.new(0, 200, 0, 35)
+KeyButton.Font = Enum.Font.GothamBold
+KeyButton.Text = "VERIFICAR"
+KeyButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+KeyButton.TextSize = 14
+
+-- ======================== MAIN SCRIPT ========================
+local function StartDarkHub()
+    local function safeHttpGet(url)
+        return game:HttpGet(url)
+    end
+
+    local Fluent = loadstring(safeHttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
+    local SaveManager = loadstring(safeHttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/SaveManager.lua"))()
+    local InterfaceManager = loadstring(safeHttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/InterfaceManager.lua"))()
+
+    -- Services
+    local Players = game:GetService("Players")
+    local RunService = game:GetService("RunService")
+    local UserInputService = game:GetService("UserInputService")
+    local Workspace = game:GetService("Workspace")
+    local LocalPlayer = Players.LocalPlayer
+    local Camera = Workspace.CurrentCamera
+    local Mouse = LocalPlayer:GetMouse()
+
+    -- Settings (LuaWare Feature Set)
+    local S = {
+        MasterSwitch = true,
+        Aimbot = false,
+        Aimlock = false,
+        SilentAim = false,
+        WallCheck = true,
+        ShowFOV = true,
+        FOVSize = 130,
+        Smoothness = 0.1,
+        AimKey = Enum.UserInputType.MouseButton2,
+        
+        ESP = false,
+        ESPAll = true,
+        ESPHealth = true,
+        ESPBoxes = true,
+        
+        RageBot = false,
+        TriggerBot = false,
+        
+        Speed = false,
+        WalkSpeed = 32,
+        JumpPower = false,
+        JumpValue = 50,
+        Noclip = false,
+        
+        TeamCheck = true,
+        NoRecoil = false,
+        AutoFarm = false,
+        
+        AccentColor = Color3.fromRGB(188, 78, 255)
+    }
+
+    -- State
+    local HoldingAim = false
+    local espCache = {}
+    local FOVCircle = Drawing.new("Circle")
+    FOVCircle.Thickness = 1
+    FOVCircle.Filled = false
+    FOVCircle.Transparency = 0.7
+    FOVCircle.Color = S.AccentColor
+
+    -- Helpers
+    local function getClosestPlayer()
+        local target, dist = nil, S.FOVSize
+        for _, plr in ipairs(Players:GetPlayers()) do
+            if plr ~= LocalPlayer and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+                if S.TeamCheck and plr.Team == LocalPlayer.Team then continue end
+                
+                local pos, onScreen = Camera:WorldToViewportPoint(plr.Character.HumanoidRootPart.Position)
+                if onScreen then
+                    local magnitude = (Vector2.new(pos.X, pos.Y) - Vector2.new(Mouse.X, Mouse.Y)).Magnitude
+                    if magnitude < dist then
+                        target = plr
+                        dist = magnitude
+                    end
+                end
+            end
+        end
+        return target
+    end
+
+    -- Aimbot Logic
+    RunService.RenderStepped:Connect(function()
+        if not S.MasterSwitch then return end
+        
+        -- FOV Update
+        FOVCircle.Visible = S.ShowFOV
+        FOVCircle.Radius = S.FOVSize
+        FOVCircle.Position = Vector2.new(Mouse.X, Mouse.Y)
+        FOVCircle.Color = S.AccentColor
+
+        if (S.Aimbot or S.Aimlock) and (HoldingAim or S.Aimlock) then
+            local target = getClosestPlayer()
+            if target and target.Character and target.Character:FindFirstChild("Head") then
+                local head = target.Character.Head
+                local lookAt = CFrame.new(Camera.CFrame.Position, head.Position)
+                Camera.CFrame = Camera.CFrame:Lerp(lookAt, 1 - S.Smoothness)
+            end
+        end
+    end)
+
+    -- Input
+    UserInputService.InputBegan:Connect(function(input)
+        if input.UserInputType == S.AimKey then HoldingAim = true end
+    end)
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == S.AimKey then HoldingAim = false end
+    end)
+
+    -- UI Construction
+    local Window = Fluent:CreateWindow({
+        Title = "DARK HUB | ARSENAL",
+        SubTitle = "LuaWare Rebuild",
+        TabWidth = 160,
+        Acrylic = true,
+        Theme = "Darker",
+        MinimizeKey = Enum.KeyCode.Insert
+    })
+
+    local Tabs = {
+        Main = Window:AddTab({ Title = "Main", Icon = "home" }),
+        Combat = Window:AddTab({ Title = "Combat", Icon = "crosshair" }),
+        Visuals = Window:AddTab({ Title = "Visuals", Icon = "eye" }),
+        Movement = Window:AddTab({ Title = "Movement", Icon = "zap" }),
+        Misc = Window:AddTab({ Title = "Misc", Icon = "settings" }),
+    }
+
+    -- Main Tab
+    Tabs.Main:AddSection("Global Settings")
+    Tabs.Main:AddToggle("Master", { Title = "Master Switch", Default = true, Callback = function(v) S.MasterSwitch = v end })
+    Tabs.Main:AddParagraph({ Title = "DARK HUB", Content = "Arsenal Edition\nKey: DARK" })
+
+    -- Combat Tab
+    Tabs.Combat:AddSection("Aimbot")
+    Tabs.Combat:AddToggle("Aimbot", { Title = "Enable Aimbot", Default = false, Callback = function(v) S.Aimbot = v end })
+    Tabs.Combat:AddToggle("Aimlock", { Title = "Aimlock", Default = false, Callback = function(v) S.Aimlock = v end })
+    Tabs.Combat:AddToggle("Silent", { Title = "Silent Aim", Default = false, Callback = function(v) S.SilentAim = v end })
+    Tabs.Combat:AddToggle("WallCheck", { Title = "Wall Check", Default = true, Callback = function(v) S.WallCheck = v end })
+    Tabs.Combat:AddSlider("FOV", { Title = "FOV Size", Default = 130, Min = 10, Max = 800, Rounding = 0, Callback = function(v) S.FOVSize = v end })
+    Tabs.Combat:AddSlider("Smooth", { Title = "Smoothness", Default = 0.1, Min = 0, Max = 1, Rounding = 2, Callback = function(v) S.Smoothness = v end })
+    
+    Tabs.Combat:AddSection("Rage/Trigger")
+    Tabs.Combat:AddToggle("Rage", { Title = "RageBot", Default = false, Callback = function(v) S.RageBot = v end })
+    Tabs.Combat:AddToggle("Trigger", { Title = "TriggerBot", Default = false, Callback = function(v) S.TriggerBot = v end })
+
+    -- Visuals Tab
+    Tabs.Visuals:AddSection("ESP")
+    Tabs.Visuals:AddToggle("ESP", { Title = "Enable ESP", Default = false, Callback = function(v) S.ESP = v end })
+    Tabs.Visuals:AddToggle("ESPAll", { Title = "ESP All", Default = true, Callback = function(v) S.ESPAll = v end })
+    Tabs.Visuals:AddToggle("ESPHealth", { Title = "Health Bars", Default = true, Callback = function(v) S.ESPHealth = v end })
+    Tabs.Visuals:AddToggle("ESPBox", { Title = "Boxes", Default = true, Callback = function(v) S.ESPBoxes = v end })
+
+    -- Movement Tab
+    Tabs.Movement:AddSection("Player")
+    Tabs.Movement:AddToggle("Speed", { Title = "SpeedHack", Default = false, Callback = function(v) 
+        S.Speed = v 
+        LocalPlayer.Character.Humanoid.WalkSpeed = v and S.WalkSpeed or 16
+    end })
+    Tabs.Movement:AddSlider("WSpeed", { Title = "WalkSpeed Value", Default = 32, Min = 16, Max = 150, Rounding = 0, Callback = function(v) S.WalkSpeed = v end })
+    Tabs.Movement:AddToggle("Jump", { Title = "JumpPower", Default = false, Callback = function(v) 
+        S.JumpPower = v 
+        LocalPlayer.Character.Humanoid.JumpPower = v and S.JumpValue or 50
+    end })
+    Tabs.Movement:AddSlider("JPower", { Title = "Jump Value", Default = 50, Min = 50, Max = 200, Rounding = 0, Callback = function(v) S.JumpValue = v end })
+    Tabs.Movement:AddToggle("Noclip", { Title = "Noclip", Default = false, Callback = function(v) S.Noclip = v end })
+
+    -- Misc Tab
+    Tabs.Misc:AddSection("Other")
+    Tabs.Misc:AddToggle("TeamCheck", { Title = "Team Check", Default = true, Callback = function(v) S.TeamCheck = v end })
+    Tabs.Misc:AddToggle("NoRecoil", { Title = "No Recoil", Default = false, Callback = function(v) S.NoRecoil = v end })
+    Tabs.Misc:AddToggle("AutoFarm", { Title = "Auto Farm", Default = false, Callback = function(v) S.AutoFarm = v end })
+
+    -- Noclip Loop
+    RunService.Stepped:Connect(function()
+        if S.Noclip and LocalPlayer.Character then
+            for _, part in ipairs(LocalPlayer.Character:GetDescendants()) do
+                if part:IsA("BasePart") then part.CanCollide = false end
+            end
+        end
+    end)
+
+    SaveManager:SetLibrary(Fluent)
+    InterfaceManager:SetLibrary(Fluent)
+    SaveManager:SetFolder("DARK_HUB_ARSENAL")
+    InterfaceManager:SetFolder("DARK_HUB_ARSENAL")
+    InterfaceManager:BuildInterfaceSection(Tabs.Misc)
+    SaveManager:BuildConfigSection(Tabs.Misc)
+
+    Window:SelectTab(1)
+    Fluent:Notify({ Title = "DARK HUB", Content = "Arsenal Loaded Successfully!", Duration = 5 })
+end
+
+-- Key Verification
+KeyButton.MouseButton1Click:Connect(function()
+    if KeyInput.Text == KeyCorrect then
+        KeyGui:Destroy()
+        StartDarkHub()
+    else
+        KeyButton.Text = "KEY INCORRETA!"
+        task.wait(1)
+        KeyButton.Text = "VERIFICAR"
+    end
+end)
